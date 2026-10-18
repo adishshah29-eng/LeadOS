@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { readEnv } from "@/lib/env";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/auth", "/setup"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/auth", "/setup", "/r", "/suspended"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || (p !== "/" && pathname.startsWith(`${p}/`)));
@@ -87,6 +87,17 @@ export async function updateSession(request: NextRequest) {
   }
   if (signedIn && (pathname === "/login" || pathname === "/signup")) {
     return NextResponse.redirect(new URL("/app", request.url));
+  }
+
+  // Accounts with two-factor login must pass the code step before anything else.
+  // Read from the session cookie; no network call.
+  if (signedIn && pathname !== "/login/verify" && !pathname.startsWith("/auth/")) {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+      const url = new URL("/login/verify", request.url);
+      url.searchParams.set("next", pathname + search);
+      return NextResponse.redirect(url);
+    }
   }
   return response;
 }

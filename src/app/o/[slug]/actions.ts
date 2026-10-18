@@ -210,6 +210,50 @@ export async function removeMember(form: FormData): Promise<void> {
   revalidatePath(`/o/${ctx.org.slug}/team`);
 }
 
+// ------------------------------------------------------------ report links
+
+const EXPIRY_DAYS = [7, 30, 90] as const;
+
+/** Creates a read-only report link for a client. The secret is shown once; only its hash is stored. */
+export async function createReportLink(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const v = values(form, ["label", "project_id", "expires"]);
+  const ctx = await ctxFor(form, "admin");
+  const parsed = z
+    .object({
+      label: z.string().trim().min(1, "Give the link a name, e.g. the client's name.").max(80),
+      project_id: z.union([z.literal(""), uuid]),
+      expires: z.coerce.number().refine((n) => (EXPIRY_DAYS as readonly number[]).includes(n), "Pick an expiry."),
+    })
+    .safeParse(v);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message, values: v };
+
+  const token = crypto.randomBytes(32).toString("base64url");
+  const supabase = await createClient();
+  const { error } = await supabase.from("report_links").insert({
+    org_id: ctx.org.id,
+    project_id: parsed.data.project_id || null,
+    label: parsed.data.label,
+    token_hash: crypto.createHash("sha256").update(token).digest("hex"),
+    created_by: ctx.userId,
+    expires_at: new Date(Date.now() + parsed.data.expires * 86_400_000).toISOString(),
+  });
+  if (error) return { error: error.code === "PGRST205" ? "Run migration 0004 first." : "Couldn't create the link.", values: v };
+  await supabase.rpc("write_audit", { p_org: ctx.org.id, p_action: "report_link.created", p_target: parsed.data.label });
+
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || (await headers()).get("origin") || "";
+  revalidatePath(`/o/${ctx.org.slug}/settings`);
+  return { message: "Link created. Copy it now; it won't be shown again.", link: `${origin}/r/${token}` };
+}
+
+export async function revokeReportLink(form: FormData): Promise<void> {
+  const ctx = await ctxFor(form, "admin");
+  const id = uuid.parse(form.get("link_id"));
+  const supabase = await createClient();
+  await supabase.from("report_links").update({ revoked_at: new Date().toISOString() }).eq("id", id).eq("org_id", ctx.org.id);
+  await supabase.rpc("write_audit", { p_org: ctx.org.id, p_action: "report_link.revoked", p_target: id });
+  revalidatePath(`/o/${ctx.org.slug}/settings`);
+}
+
 // ---------------------------------------------------------------- settings
 
 export async function renameOrg(_prev: ActionState, form: FormData): Promise<ActionState> {

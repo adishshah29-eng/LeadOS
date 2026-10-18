@@ -5,7 +5,7 @@
 -- what they must NOT be able to do. Everything runs inside one DO block that
 -- ends by raising an error on purpose, so ALL test data is rolled back.
 --
---   Success:  ERROR: ALL 19 RLS ISOLATION CHECKS PASSED (test data rolled back)
+--   Success:  ERROR: ALL 19 (21 after migration 0004) RLS ISOLATION CHECKS PASSED
 --   Failure:  ERROR: FAIL: <what leaked>
 --
 -- Run it after every migration that touches policies.
@@ -86,6 +86,16 @@ begin
 
   select count(*) into n from public.ad_rollup_daily where org_id = org_a;
   if n <> 0 then raise exception 'FAIL: org B owner can read org A ad numbers'; end if; passed := passed + 1;
+
+  -- Client report links (migration 0004), when present.
+  if to_regclass('public.report_links') is not null then
+    perform set_config('role', 'none', true);
+    execute format($q$insert into public.report_links (org_id, label, token_hash, expires_at) values (%L, 'A link', repeat('a', 64), now() + interval '1 day')$q$, org_a);
+    perform set_config('role', 'authenticated', true);
+    execute format('select count(*) from public.report_links where org_id = %L', org_a) into n;
+    if n <> 0 then raise exception 'FAIL: org B owner can see org A report links'; end if; passed := passed + 1;
+    if public.public_report(repeat('b', 64), 30) is not null then raise exception 'FAIL: an unknown report link returned data'; end if; passed := passed + 1;
+  end if;
 
   -- ------------------------------------------------------- agent of org A
   perform set_config('role', 'none', true);

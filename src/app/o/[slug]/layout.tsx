@@ -36,9 +36,9 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[s
         </Link>
       ) : null}
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-xs text-fg-subtle" title={ctx.email}>
+        <Link href="/account" className="truncate text-xs text-fg-subtle hover:text-fg hover:underline" title={`${ctx.email}: your account`}>
           {ctx.email}
-        </span>
+        </Link>
         <ThemeToggle />
       </div>
       <form action="/auth/signout" method="post">

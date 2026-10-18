@@ -38,13 +38,13 @@ export const listMyOrgs = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("memberships")
-    .select("role, organizations!inner(id, name, slug)")
+    .select("role, organizations!inner(id, name, slug, status)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
   bounceIfSessionRejected(error);
   if (error) throw new Error(error.message);
   return (data ?? []).map((m) => {
-    const o = m.organizations as unknown as { id: string; name: string; slug: string };
+    const o = m.organizations as unknown as { id: string; name: string; slug: string; status: string };
     return { ...o, role: m.role as OrgRole };
   });
 });
@@ -70,6 +70,7 @@ export const requireOrg = cache(async (slug: string): Promise<OrgContext> => {
     .eq("user_id", user.id)
     .maybeSingle();
   if (!m) notFound(); // platform staff can see the org row, but not open the workspace
+  if (org.status === "suspended") redirect("/suspended");
   return { org, role: m.role as OrgRole, userId: user.id, email: user.email };
 });
 

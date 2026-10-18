@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { isPlatformAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusForm } from "./status-form";
 
 export const metadata: Metadata = { title: "Platform admin", robots: { index: false } };
 
@@ -17,7 +18,11 @@ export default async function AdminPage() {
   const role = await isPlatformAdmin();
   if (!role) notFound();
 
+  // Platform staff can see every workspace: require a second factor.
   const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  if (claims?.claims?.aal !== "aal2") redirect("/account?mfa=required");
+
   const { data: orgs } = await supabase
     .from("organizations")
     .select("id, name, slug, plan, status, trial_ends_at, created_at, memberships(count)")
@@ -48,13 +53,14 @@ export default async function AdminPage() {
       </div>
 
       <Card className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-surface-2 text-left text-xs font-medium text-fg-muted">
             <tr>
               <th scope="col" className="px-4 py-2.5">Organization</th>
               <th scope="col" className="px-4 py-2.5">Plan</th>
               <th scope="col" className="px-4 py-2.5">Members</th>
               <th scope="col" className="px-4 py-2.5">Created</th>
+              {role === "super_admin" ? <th scope="col" className="px-4 py-2.5">Access</th> : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -71,6 +77,11 @@ export default async function AdminPage() {
                 </td>
                 <td className="tabular px-4 py-2.5">{(o.memberships as unknown as { count: number }[])[0]?.count ?? 0}</td>
                 <td className="tabular px-4 py-2.5 text-fg-muted">{new Date(o.created_at).toLocaleDateString("en-IN")}</td>
+                {role === "super_admin" ? (
+                  <td className="px-4 py-2.5">
+                    <StatusForm orgId={o.id} orgName={o.name} suspended={o.status === "suspended"} />
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>

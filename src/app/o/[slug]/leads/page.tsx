@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Inbox, Phone } from "lucide-react";
+import { Download, Inbox, Phone } from "lucide-react";
 import { atLeast, requireOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cleanSearch, decodeCursor, encodeCursor, LEAD_STATUSES, SCORE_META, STATUS_META, type LeadStatus } from "@/lib/leads";
@@ -66,7 +66,18 @@ export default async function LeadsPage({ params, searchParams }: PageProps<"/o/
       <PageHeader
         title="Leads"
         description={ctx.role === "agent" ? "Leads assigned to you." : "Every lead across your projects."}
-        actions={canManage ? <AddLead slug={ctx.org.slug} projects={projects ?? []} /> : undefined}
+        actions={
+          canManage ? (
+            <>
+              {atLeast(ctx.role, "admin") ? (
+                <a href={`${base}/export?${filterQs}`} className={buttonClass("secondary")} download>
+                  <Download className="size-4" aria-hidden /> Export CSV
+                </a>
+              ) : null}
+              <AddLead slug={ctx.org.slug} projects={projects ?? []} />
+            </>
+          ) : undefined
+        }
       />
 
       <form className="mb-4 grid gap-2 sm:grid-cols-[1fr_180px_180px_auto]" role="search">

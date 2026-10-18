@@ -7,9 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClass } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
 import { ActionForm, SubmitButton } from "@/components/action-form";
-import { renameOrg } from "../actions";
+import { createReportLink, renameOrg, revokeReportLink } from "../actions";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -24,10 +24,19 @@ export default async function SettingsPage({ params }: PageProps<"/o/[slug]/sett
   if (!atLeast(ctx.role, "admin")) notFound();
 
   const supabase = await createClient();
-  const [{ data: integrations }, { data: audit }] = await Promise.all([
+  const [{ data: integrations }, { data: audit }, { data: links }, { data: projects }] = await Promise.all([
     supabase.from("integrations").select("kind, status").eq("org_id", ctx.org.id),
     supabase.from("audit_log").select("id, action, target, at, actor_id").eq("org_id", ctx.org.id).order("at", { ascending: false }).limit(20),
+    supabase
+      .from("report_links")
+      .select("id, label, expires_at, last_viewed_at, view_count, projects(name)")
+      .eq("org_id", ctx.org.id)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false }),
+    supabase.from("projects").select("id, name").eq("org_id", ctx.org.id).order("name"),
   ]);
+  const shortDate = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
   const statusOf = (kind: string) => integrations?.find((i) => i.kind === kind)?.status;
 
   return (
@@ -72,6 +81,56 @@ export default async function SettingsPage({ params }: PageProps<"/o/[slug]/sett
           );
         })}
       </div>
+
+      <Card className="mb-6 p-5">
+        <h2 className="font-medium">Client report links</h2>
+        <p className="mt-1 mb-4 text-sm text-fg-muted">
+          A read-only dashboard you can send a client: spend, leads and campaigns, never lead names or phone numbers. No account needed to open it.
+        </p>
+        <ActionForm action={createReportLink} slug={ctx.org.slug}>
+          <div className="grid gap-3 sm:grid-cols-[1fr_200px_140px_auto] sm:items-end">
+            <Field label="Name" htmlFor="link-label">
+              <Input id="link-label" name="label" placeholder="e.g. Skyline client weekly" required maxLength={80} />
+            </Field>
+            <Field label="Project" htmlFor="link-project">
+              <Select id="link-project" name="project_id" defaultValue="">
+                <option value="">All projects</option>
+                {(projects ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Expires in" htmlFor="link-expires">
+              <Select id="link-expires" name="expires" defaultValue="30">
+                <option value="7">7 days</option>
+                <option value="30">30 days</option>
+                <option value="90">90 days</option>
+              </Select>
+            </Field>
+            <SubmitButton pendingLabel="Creating…">Create link</SubmitButton>
+          </div>
+        </ActionForm>
+        {links?.length ? (
+          <ul className="mt-5 divide-y divide-border border-t border-border text-sm">
+            {links.map((l) => (
+              <li key={l.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <span className="min-w-0">
+                  <span className="block font-medium">{l.label}</span>
+                  <span className="block text-xs text-fg-subtle">
+                    {(l.projects as unknown as { name: string } | null)?.name ?? "All projects"} · expires {shortDate(l.expires_at)} ·{" "}
+                    {l.view_count ? `viewed ${l.view_count}×, last ${shortDate(l.last_viewed_at!)}` : "not opened yet"}
+                  </span>
+                </span>
+                <form action={revokeReportLink}>
+                  <input type="hidden" name="slug" value={ctx.org.slug} />
+                  <input type="hidden" name="link_id" value={l.id} />
+                  <Button type="submit" variant="ghost" size="sm">Turn off</Button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </Card>
 
       <Card>
         <h2 className="border-b border-border px-5 py-3 text-sm font-medium">Activity log</h2>
