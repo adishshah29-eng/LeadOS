@@ -1,65 +1,65 @@
-import Image from "next/image";
+import Link from "next/link";
+import { BarChart3, MessageCircle, ShieldCheck, Users } from "lucide-react";
+import { BRAND } from "@/lib/brand";
+import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { buttonClass } from "@/components/ui/button";
+
+const FEATURES = [
+  { Icon: BarChart3, title: "Spend you can trust", body: "Ad spend, leads and cost per lead that match Ads Manager, per project." },
+  { Icon: MessageCircle, title: "Instant WhatsApp follow-up", body: "New leads get a reply in seconds, are qualified with buttons and scored." },
+  { Icon: Users, title: "Built for teams", body: "Assign leads to agents, track the pipeline, give clients a read-only view." },
+  { Icon: ShieldCheck, title: "Private by design", body: "Every company's data is isolated at the database level. Roles decide the rest." },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex min-h-dvh flex-col">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+        <span className="flex items-center gap-2 font-semibold">
+          <Logo /> {BRAND.name}
+        </span>
+        <nav className="flex items-center gap-2">
+          <ThemeToggle className="hidden sm:inline-flex" />
+          <Link href="/login" className={buttonClass("ghost", "sm")}>
+            Sign in
+          </Link>
+          <Link href="/signup" className={buttonClass("primary", "sm")}>
+            Start free trial
+          </Link>
+        </nav>
+      </header>
+
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6">
+        <section className="py-16 sm:py-24">
+          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+            Know which ads bring buyers, and follow up before your competitor does.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          <p className="mt-5 max-w-2xl text-lg text-fg-muted">{BRAND.tagline}</p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/signup" className={buttonClass("primary", "md")}>
+              Start free trial
+            </Link>
+            <Link href="/login" className={buttonClass("secondary", "md")}>
+              Sign in
+            </Link>
+          </div>
+        </section>
+
+        <section className="grid gap-4 pb-24 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map(({ Icon, title, body }) => (
+            <div key={title} className="rounded-lg border border-border bg-surface p-5">
+              <Icon className="size-5 text-fg" aria-hidden />
+              <h2 className="mt-3 font-medium">{title}</h2>
+              <p className="mt-1 text-sm text-fg-muted">{body}</p>
+            </div>
+          ))}
+        </section>
       </main>
+
+      <footer className="border-t border-border py-6 text-center text-xs text-fg-subtle">
+        © {new Date().getFullYear()} {BRAND.name}
+      </footer>
     </div>
   );
 }

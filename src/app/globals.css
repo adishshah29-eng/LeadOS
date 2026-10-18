@@ -1,26 +1,166 @@
 @import "tailwindcss";
 
+/* Theme switches on <html data-theme>. With no attribute, the OS setting wins. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Kaali-Peeli: the palette of Mumbai's black-and-yellow taxis.
+ *  - Ink black carries the primary action (by day; at night the taxi yellow does).
+ *  - Taxi yellow is rare on purpose: new leads, the current selection, focus halos.
+ *  - Neutrals are warm concrete, not blue-grey.
+ * Every text/background pair below is checked to WCAG AA in both themes.
+ * Components use these token names only, never raw colors.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f4f3f0;
+  --surface: #ffffff;
+  --surface-2: #eceae4;
+  --fg: #16150f;
+  --fg-muted: #48453d;
+  --fg-subtle: #666257;
+  --border: #e2e0da;
+  --border-strong: #8f8a7e;
+  --primary: #16150f;
+  --primary-hover: #34322b;
+  --primary-fg: #ffffff;
+  --highlight: #f7c600;
+  --highlight-fg: #16150f;
+  --highlight-soft: #fcf0bf;
+  --logo-dot: #f7c600;
+  --success: #1d6e38;
+  --success-soft: #e2f0e5;
+  --warning: #8f4c05;
+  --warning-soft: #faebd5;
+  --danger: #b42318;
+  --danger-soft: #fbe4e1;
+  --ring: #16150f;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* Night shift: the taxi's yellow becomes the primary action. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --bg: #121110;
+    --surface: #1a1916;
+    --surface-2: #24221e;
+    --fg: #f4f2ec;
+    --fg-muted: #cbc7bc;
+    --fg-subtle: #a19c90;
+    --border: #302e29;
+    --border-strong: #6e6a60;
+    --primary: #f7c600;
+    --primary-hover: #ffd83d;
+    --primary-fg: #16150f;
+    --highlight: #f7c600;
+    --highlight-fg: #16150f;
+    --highlight-soft: #3a3112;
+    --logo-dot: #16150f;
+    --success: #5cc97e;
+    --success-soft: #16321f;
+    --warning: #f0a24a;
+    --warning-soft: #3a2410;
+    --danger: #f47a6e;
+    --danger-soft: #3d1714;
+    --ring: #f7c600;
+    color-scheme: dark;
   }
 }
 
+:root[data-theme="dark"] {
+  --bg: #121110;
+  --surface: #1a1916;
+  --surface-2: #24221e;
+  --fg: #f4f2ec;
+  --fg-muted: #cbc7bc;
+  --fg-subtle: #a19c90;
+  --border: #302e29;
+  --border-strong: #6e6a60;
+  --primary: #f7c600;
+  --primary-hover: #ffd83d;
+  --primary-fg: #16150f;
+  --highlight: #f7c600;
+  --highlight-fg: #16150f;
+  --highlight-soft: #3a3112;
+  --logo-dot: #16150f;
+  --success: #5cc97e;
+  --success-soft: #16321f;
+  --warning: #f0a24a;
+  --warning-soft: #3a2410;
+  --danger: #f47a6e;
+  --danger-soft: #3d1714;
+  --ring: #f7c600;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-highlight: var(--highlight);
+  --color-highlight-fg: var(--highlight-fg);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-logo-dot: var(--logo-dot);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  caret-color: var(--fg);
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* Browser surfaces carry the palette too. */
+::selection {
+  background: var(--highlight);
+  color: var(--highlight-fg);
+}
+
+/* Links: ink text with a taxi-yellow underline, so they're findable without relying on color. */
+@utility link {
+  font-weight: 500;
+  color: var(--fg);
+  text-decoration-line: underline;
+  text-decoration-color: var(--highlight);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  &:hover {
+    text-decoration-color: var(--fg);
+  }
+}
+
+/* Figures line up in tables and KPI cards. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

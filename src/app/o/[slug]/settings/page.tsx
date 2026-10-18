@@ -1,0 +1,91 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { BarChart3, MessageCircle } from "lucide-react";
+import { atLeast, requireOrg } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { Card, PageHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Field, Input } from "@/components/ui/field";
+import { ActionForm, SubmitButton } from "@/components/action-form";
+import { renameOrg } from "../actions";
+
+export const metadata: Metadata = { title: "Settings" };
+
+const INTEGRATIONS = [
+  { kind: "meta", Icon: BarChart3, name: "Meta ads & lead forms", body: "Sync spend and results, and receive leads the moment a form is submitted." },
+  { kind: "whatsapp", Icon: MessageCircle, name: "WhatsApp Business", body: "Send an instant welcome, qualify leads with buttons, and follow up automatically." },
+] as const;
+
+export default async function SettingsPage({ params }: PageProps<"/o/[slug]/settings">) {
+  const { slug } = await params;
+  const ctx = await requireOrg(slug);
+  if (!atLeast(ctx.role, "admin")) notFound();
+
+  const supabase = await createClient();
+  const [{ data: integrations }, { data: audit }] = await Promise.all([
+    supabase.from("integrations").select("kind, status").eq("org_id", ctx.org.id),
+    supabase.from("audit_log").select("id, action, target, at, actor_id").eq("org_id", ctx.org.id).order("at", { ascending: false }).limit(20),
+  ]);
+  const statusOf = (kind: string) => integrations?.find((i) => i.kind === kind)?.status;
+
+  return (
+    <>
+      <PageHeader title="Settings" />
+
+      <Card className="mb-6 p-5">
+        <h2 className="mb-3 font-medium">Workspace</h2>
+        <ActionForm action={renameOrg} slug={ctx.org.slug} className="max-w-md">
+          <Field label="Company name" htmlFor="org-name">
+            <Input id="org-name" name="name" required defaultValue={ctx.org.name} />
+          </Field>
+          <p className="text-xs text-fg-subtle">
+            Address: <code className="font-mono">/o/{ctx.org.slug}</code>
+          </p>
+          <SubmitButton pendingLabel="Saving…" size="sm">Save</SubmitButton>
+        </ActionForm>
+      </Card>
+
+      <h2 className="mb-3 font-medium">Integrations</h2>
+      <div className="mb-6 grid gap-3 md:grid-cols-2">
+        {INTEGRATIONS.map(({ kind, Icon, name, body }) => {
+          const status = statusOf(kind);
+          return (
+            <Card key={kind} className="flex flex-col p-5">
+              <div className="flex items-start justify-between gap-3">
+                <Icon className="size-5 text-fg" aria-hidden />
+                {status === "active" ? <Badge tone="success">Connected</Badge> : status === "needs_reauth" ? <Badge tone="warning">Reconnect needed</Badge> : <Badge>Not connected</Badge>}
+              </div>
+              <h3 className="mt-3 font-medium">{name}</h3>
+              <p className="mt-1 flex-1 text-sm text-fg-muted">{body}</p>
+              {/* OAuth connect flows ship in the integrations phase (needs Meta App Review). */}
+              <Button variant="secondary" size="sm" className="mt-4 self-start" disabled title="Coming in the next release">
+                Connect (coming soon)
+              </Button>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card>
+        <h2 className="border-b border-border px-5 py-3 text-sm font-medium">Activity log</h2>
+        {audit?.length ? (
+          <ul className="divide-y divide-border text-sm">
+            {audit.map((a) => (
+              <li key={a.id} className="flex flex-col gap-0.5 px-5 py-2.5 sm:flex-row sm:justify-between">
+                <span>
+                  <code className="font-mono text-xs">{a.action}</code> <span className="text-fg-muted">{a.target}</span>
+                </span>
+                <span className="tabular text-xs text-fg-subtle">
+                  {new Date(a.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-5 py-6 text-sm text-fg-muted">No activity yet.</p>
+        )}
+      </Card>
+    </>
+  );
+}
