@@ -21,7 +21,9 @@ Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + 
 | Audit log (append-only) | ✅ |
 | Platform admin console (org list, no lead PII) | ✅ |
 | System / Light / Dark appearance, mobile layout | ✅ |
-| Meta OAuth + ads/leads sync, webhook inbox, job queue | ⏳ next phase |
+| Meta connect (System User token in Vault), ad account + Page picker | ✅ |
+| Ads + leads sync jobs (Inngest), instant lead webhook with inbox + sweeper | ✅ (needs setup below) |
+| Facebook Login (OAuth) connect | ⏳ after Meta App Review |
 | WhatsApp bot per tenant | ⏳ |
 | Billing (Razorpay) | ⏳ |
 
@@ -43,6 +45,34 @@ Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + 
 For local development you can turn off **Authentication → Providers → Email → Confirm email**
 in Supabase, so sign-up logs you straight in.
 
+### Meta integration (ads + leads sync)
+
+1. Run [`supabase/migrations/0002_meta_integration.sql`](supabase/migrations/0002_meta_integration.sql) in the SQL Editor.
+2. In `.env.local`, fill in the two server-only secrets (see `.env.example`):
+   `SUPABASE_SECRET_KEY` (Supabase → Project Settings → API keys) and `META_APP_SECRET` (Meta app → Settings → Basic).
+3. Start the job runner next to `npm run dev`:
+   ```bash
+   npm run inngest:dev
+   ```
+   Its dashboard (http://localhost:8288) shows every sync run, retry and failure.
+4. In the app: **Settings → Meta → Connect**, paste a System User token, pick ad accounts and Pages, **Save and sync**.
+5. Instant leads need a public URL. Point the Meta app's webhook (Page → `leadgen`) at
+   `https://<your-domain>/api/webhooks/meta` with `META_WEBHOOK_VERIFY_TOKEN` as the verify token.
+   Locally, leads still arrive through the scheduled sync.
+
+How syncing works:
+
+| Job | When | What |
+|---|---|---|
+| `meta-schedule-syncs` | hourly (IST :05), deep at 02:40 and 14:40 | Fans out one ads sync per enabled account (2 days, or 7 on deep runs) and one leads sync per workspace |
+| `meta-ads-sync` | per event | One run per ad account at a time; app-wide throttle. Upserts only changed rows, then rebuilds that project's rollups |
+| `meta-leads-sync` | per event | Pulls leads for ads that delivered in the last 14 days; existing leads keep their status |
+| `meta-lead-received` | per webhook | Separate lane so instant leads never wait behind syncs |
+| `meta-sweep-webhooks` | every 5 min | Re-queues webhook events that were stored but not processed |
+
+When Meta rejects a token, the workspace is marked **Reconnect needed** and its jobs stop retrying.
+When Meta's usage headers pass 75%, the job backs off until Meta says the quota is back.
+
 ### Make yourself platform admin
 
 Run once in the SQL Editor, using the email you signed up with:
@@ -63,6 +93,8 @@ A "Platform admin" link then appears in the sidebar (`/admin`).
 - Agents can only change the status of leads assigned to them (enforced by a trigger). `org_id` can never change after insert.
 - Invite tokens are stored as SHA-256 hashes. The raw link is shown once.
 - `webhook_events` and `sync_runs` writes are worker-only (no RLS policy).
+- The service-role client (`src/server/supabase-admin.ts`) is importable only from `src/server/**` and `src/app/api/**`. ESLint fails the build otherwise.
+- Meta tokens are stored with `connect_meta()` into Supabase Vault. Only `worker_meta_token()` (service role) can decrypt them, and job steps never return a token, so it is never persisted in Inngest.
 
 ## Project layout
 
@@ -84,6 +116,9 @@ supabase/migrations/   SQL, run in order
 | Every page redirects to `/setup` | `.env.local` is missing or the key is malformed. Restart `npm run dev` after editing. |
 | Sign-up says "check your inbox" but no email arrives | Supabase's built-in mailer is rate-limited. Turn off email confirmation for development, or set up SMTP. |
 | Creating a workspace fails | Check that the migration ran. `create_organization` must exist. |
+| "Saved, but the background worker isn't reachable" | Start `npm run inngest:dev`. |
+| A page under `/o/...` shows 404 in dev after adding routes | Stop the dev server, delete `.next/dev`, start it again. |
+| Times look hours off | Check your computer's clock is set automatically. |
 | Invite says "different email" | The invited person must sign in with exactly the address the invite was sent to. |
 
 ## Known gaps (before launch)

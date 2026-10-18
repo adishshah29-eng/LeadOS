@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BarChart3, MessageCircle } from "lucide-react";
 import { atLeast, requireOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClass } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { ActionForm, SubmitButton } from "@/components/action-form";
 import { renameOrg } from "../actions";
@@ -58,10 +59,15 @@ export default async function SettingsPage({ params }: PageProps<"/o/[slug]/sett
               </div>
               <h3 className="mt-3 font-medium">{name}</h3>
               <p className="mt-1 flex-1 text-sm text-fg-muted">{body}</p>
-              {/* OAuth connect flows ship in the integrations phase (needs Meta App Review). */}
-              <Button variant="secondary" size="sm" className="mt-4 self-start" disabled title="Coming in the next release">
-                Connect (coming soon)
-              </Button>
+              {kind === "meta" ? (
+                <Link href={`/o/${ctx.org.slug}/settings/meta`} className={buttonClass("secondary", "sm", "mt-4 self-start")}>
+                  {status === "active" ? "Manage" : status === "needs_reauth" ? "Reconnect" : "Connect"}
+                </Link>
+              ) : (
+                <Button variant="secondary" size="sm" className="mt-4 self-start" disabled title="Coming in the next release">
+                  Connect (coming soon)
+                </Button>
+              )}
             </Card>
           );
         })}
