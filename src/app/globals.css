@@ -115,6 +115,12 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-ring: var(--ring);
+  /* Fixed brand primitives, the same in light and dark: the taxi's yellow
+     and black, for surfaces that are deliberately "the taxi" in either theme. */
+  --color-taxi: #f7c600;
+  --color-ink: #16150f;
+  --color-ink-fg: #f4f2ec;
+  --font-display: var(--font-archivo), var(--font-geist-sans), ui-sans-serif, sans-serif;
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
@@ -143,6 +149,13 @@ body {
   text-underline-offset: 4px;
   &:hover {
     text-decoration-color: var(--fg);
+  }
+}
+
+@keyframes lead-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 
