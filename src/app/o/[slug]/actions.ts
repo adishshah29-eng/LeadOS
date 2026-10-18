@@ -46,6 +46,36 @@ export async function createProject(_prev: ActionState, form: FormData): Promise
   return { message: `Project "${name.data}" created.` };
 }
 
+/** Sets which managers and viewers can see a project (owners and admins see all). */
+export async function setProjectAccess(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const ctx = await ctxFor(form, "admin");
+  const projectId = uuid.parse(form.get("project_id"));
+  const chosen = new Set(form.getAll("user_id").map(String).filter((v) => uuid.safeParse(v).success));
+  const supabase = await createClient();
+
+  // Only managers and viewers of this org can be granted project access.
+  const { data: eligible } = await supabase.from("memberships").select("user_id, role").eq("org_id", ctx.org.id).in("role", ["manager", "viewer"]);
+  const allowed = new Set((eligible ?? []).map((m) => m.user_id as string));
+  const { data: current } = await supabase.from("project_members").select("user_id").eq("project_id", projectId).eq("org_id", ctx.org.id);
+  const had = new Set((current ?? []).map((m) => m.user_id as string));
+
+  const add = [...chosen].filter((u) => allowed.has(u) && !had.has(u));
+  const remove = [...had].filter((u) => !chosen.has(u));
+  if (add.length) {
+    const { error } = await supabase.from("project_members").insert(add.map((user_id) => ({ org_id: ctx.org.id, project_id: projectId, user_id })));
+    if (error) return { error: "Couldn't update access." };
+  }
+  if (remove.length) {
+    const { error } = await supabase.from("project_members").delete().eq("project_id", projectId).eq("org_id", ctx.org.id).in("user_id", remove);
+    if (error) return { error: "Couldn't update access." };
+  }
+  if (add.length || remove.length) {
+    await supabase.rpc("write_audit", { p_org: ctx.org.id, p_action: "project.access_changed", p_target: projectId, p_meta: { added: add.length, removed: remove.length } });
+  }
+  revalidatePath(`/o/${ctx.org.slug}/projects`);
+  return { message: "Access saved." };
+}
+
 // ------------------------------------------------------------------- leads
 
 const leadSchema = z.object({
@@ -103,6 +133,22 @@ export async function assignLead(form: FormData): Promise<void> {
   if (error || !data?.length) throw new Error("Couldn't assign this lead.");
   await supabase.from("lead_events").insert({ org_id: ctx.org.id, lead_id: leadId, actor_id: ctx.userId, type: "assigned", payload: { assigned_to: assignee } });
   revalidatePath(`/o/${ctx.org.slug}/leads`);
+}
+
+export async function addLeadNote(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const v = values(form, ["text"]);
+  const ctx = await ctxFor(form, "agent");
+  const leadId = uuid.parse(form.get("lead_id"));
+  const text = z.string().trim().min(1, "Write a note first.").max(2000, "Keep notes under 2,000 characters.").safeParse(v.text);
+  if (!text.success) return { error: text.error.issues[0]?.message, values: v };
+  const supabase = await createClient();
+  // RLS checks the user can see this lead; the insert fails otherwise.
+  const { error } = await supabase
+    .from("lead_events")
+    .insert({ org_id: ctx.org.id, lead_id: leadId, actor_id: ctx.userId, type: "note", payload: { text: text.data } });
+  if (error) return { error: "Couldn't save the note.", values: v };
+  revalidatePath(`/o/${ctx.org.slug}/leads/${leadId}`);
+  return { message: "Note added." };
 }
 
 // -------------------------------------------------------------------- team

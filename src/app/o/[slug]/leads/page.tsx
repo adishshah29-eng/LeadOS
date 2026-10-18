@@ -114,7 +114,7 @@ export default async function LeadsPage({ params, searchParams }: PageProps<"/o/
                   <tr key={l.id} className="hover:bg-surface-2/60">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{l.name ?? "Unnamed lead"}</span>
+                        <Link href={`${base}/${l.id}`} className="font-medium hover:underline">{l.name ?? "Unnamed lead"}</Link>
                         {l.score ? <Badge tone={SCORE_META[l.score as "hot"].tone}>{SCORE_META[l.score as "hot"].label}</Badge> : null}
                       </div>
                       <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-fg-subtle">

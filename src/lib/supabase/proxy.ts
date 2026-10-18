@@ -9,24 +9,59 @@ function isPublic(pathname: string) {
 }
 
 /**
+ * Content-Security-Policy with a fresh nonce per request: only scripts that
+ * Next.js (or our layout) tag with this nonce can run, so injected <script>
+ * tags are inert. Inline style attributes stay allowed (React uses them;
+ * they cannot execute code).
+ */
+function buildCsp(nonce: string) {
+  const dev = process.env.NODE_ENV !== "production";
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    `connect-src 'self'${dev ? " ws: wss:" : ""}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    ...(dev ? [] : ["upgrade-insecure-requests"]),
+  ].join("; ");
+}
+
+/**
  * Refreshes the auth cookie on every request and bounces signed-out users
  * away from app pages. This is only an optimistic check: pages and actions
  * verify the user again, and RLS is the real boundary.
  */
 export async function updateSession(request: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = buildCsp(nonce);
+  // Next.js reads the nonce from the request's CSP header while rendering.
+  const next = () => {
+    const headers = new Headers(request.headers);
+    headers.set("x-nonce", nonce);
+    headers.set("content-security-policy", csp);
+    const res = NextResponse.next({ request: { headers } });
+    res.headers.set("content-security-policy", csp);
+    return res;
+  };
+
   const env = readEnv();
   if (!env) {
-    if (request.nextUrl.pathname === "/setup") return NextResponse.next();
+    if (request.nextUrl.pathname === "/setup") return next();
     return NextResponse.redirect(new URL("/setup", request.url));
   }
 
-  let response = NextResponse.next({ request });
+  let response = next();
   const supabase = createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet, headers) => {
         toSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        response = next();
         toSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         Object.entries(headers ?? {}).forEach(([k, v]) => response.headers.set(k, v));
       },
