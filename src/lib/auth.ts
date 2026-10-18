@@ -12,6 +12,17 @@ export type OrgContext = {
   email: string;
 };
 
+/**
+ * The database rejected the session (expired or invalid JWT). Happens when a
+ * refresh was missed, e.g. the device clock is far off, so the client thinks
+ * the token is still fresh. Sign in again instead of showing an error page.
+ */
+function bounceIfSessionRejected(error: { code?: string; message?: string } | null) {
+  if (error && (error.code === "PGRST301" || error.code === "PGRST303" || /JWT expired/i.test(error.message ?? ""))) {
+    redirect("/login?error=session");
+  }
+}
+
 /** The verified signed-in user, or a redirect to /login. Cached per request. */
 export const requireUser = cache(async () => {
   const supabase = await createClient();
@@ -30,6 +41,7 @@ export const listMyOrgs = cache(async () => {
     .select("role, organizations!inner(id, name, slug)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
+  bounceIfSessionRejected(error);
   if (error) throw new Error(error.message);
   return (data ?? []).map((m) => {
     const o = m.organizations as unknown as { id: string; name: string; slug: string };
@@ -44,11 +56,12 @@ export const listMyOrgs = cache(async () => {
 export const requireOrg = cache(async (slug: string): Promise<OrgContext> => {
   const user = await requireUser();
   const supabase = await createClient();
-  const { data: org } = await supabase
+  const { data: org, error } = await supabase
     .from("organizations")
     .select("id, name, slug, plan, status, trial_ends_at")
     .eq("slug", slug.toLowerCase())
     .maybeSingle();
+  bounceIfSessionRejected(error);
   if (!org) notFound();
   const { data: m } = await supabase
     .from("memberships")

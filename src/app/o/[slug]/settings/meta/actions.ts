@@ -54,7 +54,16 @@ export async function connectMeta(_prev: ActionState, form: FormData): Promise<A
     p_scopes: found.scopes,
     p_available: available,
   });
-  if (error) return { error: "Couldn't save the connection." };
+  if (error) {
+    // Logged without the token; the RPC error never contains it.
+    console.error("[meta] connect_meta failed", error.code, error.message);
+    return {
+      error:
+        error.code === "PGRST202"
+          ? "The database isn't set up for Meta yet. Run supabase/migrations/0002_meta_integration.sql in the Supabase SQL Editor, then try again."
+          : "Couldn't save the connection. Try again; if it keeps failing, check the server log.",
+    };
+  }
   revalidatePath(`/o/${ctx.org.slug}/settings`, "layout");
   redirect(`/o/${ctx.org.slug}/settings/meta?connected=1`);
 }
@@ -122,6 +131,9 @@ export async function saveMetaSetup(_prev: ActionState, form: FormData): Promise
       .filter((a) => a.sync_enabled)
       .map((a) => ({ name: EV.adsSync, data: { orgId: ctx.org.id, adAccountId: a.id, days: a.last_synced_at ? 2 : 30 } })),
     ...newPages.map((pageId) => ({ name: EV.pageSubscribe, data: { orgId: ctx.org.id, pageId } })),
+    // Leads for the same window. Runs after the ads sync has had a moment to
+    // record which ads delivered (the leads job reads that list).
+    { name: EV.leadsSync, data: { orgId: ctx.org.id, lookbackDays: 30 }, ts: Date.now() + 90_000 },
   ];
   try {
     if (events.length) await inngest.send(events);

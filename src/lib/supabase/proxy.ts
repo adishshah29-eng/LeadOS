@@ -33,6 +33,13 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
+  // The database rejected this session (see bounceIfSessionRejected): drop
+  // the local cookies so the login page shows instead of looping back.
+  if (request.nextUrl.pathname === "/login" && request.nextUrl.searchParams.get("error") === "session") {
+    await supabase.auth.signOut({ scope: "local" });
+    return response;
+  }
+
   // getClaims() verifies the JWT; never trust getSession() on the server.
   const { data } = await supabase.auth.getClaims();
   const signedIn = !!data?.claims?.sub;

@@ -170,9 +170,11 @@ export const leadsSync = inngest.createFunction(
     const data = z.object({ orgId: uuid, lookbackDays: z.number().int().min(1).max(90).default(3) }).parse(event.data);
     const db = adminDb();
 
-    // Ads that delivered in the last 14 days, with the project each feeds.
+    // Ads that delivered during the lookback (at least the last 14 days), with
+    // the project each feeds. Leads can arrive a little after an ad stops.
     const ads = await step.run("list-active-ads", async () => {
-      const since = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
+      const windowDays = Math.max(14, data.lookbackDays + 3);
+      const since = new Date(Date.now() - windowDays * 86_400_000).toISOString().slice(0, 10);
       const { data: rows, error } = await db
         .from("ad_daily")
         .select("ad_id, ad_accounts!inner(project_id, sync_enabled)")
