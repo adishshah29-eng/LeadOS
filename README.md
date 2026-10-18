@@ -17,20 +17,29 @@ Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + 
 | Team page: change role, remove member, revoke invite | ✅ |
 | Projects | ✅ |
 | Leads: add, filter, search, keyset pagination, status, assignment, timeline events | ✅ |
-| Overview: KPIs + spend trend from pre-aggregated rollups (one RPC call) | ✅ (empty until Meta sync exists) |
+| Overview: 7/30/90-day range, project filter, campaign + ad tables with Wasting/Best flags | ✅ (tables need migration 0003) |
+| Lead detail: call / WhatsApp / email, form answers, timeline with notes | ✅ |
+| Project access for managers and viewers | ✅ |
+| Leads CSV export (admins, logged, formula-injection safe) | ✅ |
+| Account page: name, password, two-factor login (authenticator app) | ✅ |
+| Client report links: read-only dashboard, no login, expiring, revocable | ✅ (needs migration 0004) |
+| Platform admin: suspend / reactivate workspaces (two-factor required) | ✅ (needs migration 0004) |
 | Audit log (append-only) | ✅ |
-| Platform admin console (org list, no lead PII) | ✅ |
-| System / Light / Dark appearance, mobile layout | ✅ |
+| Landing page | ✅ |
+| System / Light / Dark appearance, mobile layout, nonce-based CSP | ✅ |
 | Meta connect (System User token in Vault), ad account + Page picker | ✅ |
-| Ads + leads sync jobs (Inngest), instant lead webhook with inbox + sweeper | ✅ (needs setup below) |
+| Ads + leads sync jobs (Inngest), instant lead webhook with inbox + sweeper | ✅ |
 | Facebook Login (OAuth) connect | ⏳ after Meta App Review |
-| WhatsApp bot per tenant | ⏳ |
-| Billing (Razorpay) | ⏳ |
+| WhatsApp bot per workspace | ⏳ needs a WhatsApp Business number |
+| Billing (Razorpay) | ⏳ needs a Razorpay account |
+| Daily / weekly email reports | ⏳ needs a Resend account |
 
 ## Setup
 
 1. Create a **new** Supabase project at supabase.com. Don't use the live firm's project.
-2. In **SQL Editor**, paste and run [`supabase/migrations/0001_tenancy.sql`](supabase/migrations/0001_tenancy.sql).
+2. In **SQL Editor**, run every file in [`supabase/migrations/`](supabase/migrations) in order (0001, 0002, ...).
+   Then run [`supabase/tests/rls_isolation.sql`](supabase/tests/rls_isolation.sql). It should end with
+   `ALL ... RLS ISOLATION CHECKS PASSED` (that "error" is how it rolls its test data back).
 3. Copy the env template and fill in **Project Settings → API → Project URL** and the **publishable (anon) key**:
    ```bash
    cp .env.example .env.local
@@ -121,9 +130,17 @@ supabase/migrations/   SQL, run in order
 | Times look hours off | Check your computer's clock is set automatically. |
 | Invite says "different email" | The invited person must sign in with exactly the address the invite was sent to. |
 
+## Tests
+
+```bash
+npm test
+```
+
+Unit tests (Node's built-in runner) cover the waste/best flags and CSV encoding.
+Tenant isolation is tested in the database by `supabase/tests/rls_isolation.sql`.
+
 ## Known gaps (before launch)
 
-- No automated RLS isolation test suite yet (pgTAP + HTTP). This is the next item.
-- Script CSP isn't set yet (other security headers are, in `next.config.ts`).
-- No MFA enforcement for owners and admins yet.
+- The RLS isolation test runs by hand in the SQL editor; it isn't wired into CI yet.
+- Two-factor login is optional for owners and admins (required for the platform admin console).
 - `ad_daily` uses only a default partition. Monthly partitions get created by the sync job once it exists.
