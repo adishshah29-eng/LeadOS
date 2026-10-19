@@ -3,12 +3,8 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
+import { RANGES } from "@/lib/ranges";
 
-export const RANGES = [
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-  { value: "90", label: "Last 90 days" },
-] as const;
 
 const selectCls =
   "h-9 cursor-pointer rounded-md border border-border-strong bg-surface px-2 text-sm text-fg focus:border-fg focus:outline-none focus:ring-3 focus:ring-highlight/70";

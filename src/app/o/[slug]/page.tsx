@@ -11,7 +11,8 @@ import { Card, EmptyState, PageHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
 import { TrendChart } from "@/components/trend-chart";
-import { DashboardFilters, RANGES } from "@/components/dashboard-filters";
+import { DashboardFilters } from "@/components/dashboard-filters";
+import { RANGES } from "@/lib/ranges";
 import { PerformanceTable, type BreakdownRow } from "@/components/performance-table";
 
 export const metadata: Metadata = { title: "Overview" };
