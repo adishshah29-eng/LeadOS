@@ -52,7 +52,7 @@ export default async function AdminPage() {
         ))}
       </div>
 
-      <Card className="overflow-x-auto">
+      <Card className="relative overflow-x-auto">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-surface-2 text-left text-xs font-medium text-fg-muted">
             <tr>

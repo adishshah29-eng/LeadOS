@@ -109,7 +109,7 @@ export default async function LeadsPage({ params, searchParams }: PageProps<"/o/
             action={q || status || project ? <Link href={base} className={buttonClass("secondary", "sm")}>Clear filters</Link> : undefined}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
               <thead className="sticky top-0 bg-surface-2 text-left text-xs font-medium text-fg-muted">
                 <tr>

@@ -16,7 +16,7 @@ export type BreakdownRow = PerfRow & {
 export function PerformanceTable({ rows, entity, limit = 15 }: { rows: BreakdownRow[]; entity: string; limit?: number }) {
   const shown = rows.slice(0, limit);
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="w-full min-w-[640px] text-sm">
         <thead className="bg-surface-2 text-left text-xs font-medium text-fg-muted">
           <tr>
