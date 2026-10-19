@@ -164,7 +164,9 @@ export default async function ConversationsPage({ params, searchParams }: PagePr
               </ol>
 
               <div className="border-t border-border p-4">
-                {canReply ? (
+                {selected.state === "opted_out" ? (
+                  <p className="text-sm text-fg-muted">This lead unsubscribed (sent STOP). WhatsApp doesn&apos;t allow messaging them unless they write START.</p>
+                ) : canReply ? (
                   <ReplyBox slug={ctx.org.slug} conversationId={selected.id} />
                 ) : (
                   <p className="text-sm text-fg-muted">

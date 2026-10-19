@@ -207,9 +207,10 @@ export async function applyStatus(waMessageId: string, status: string, error?: s
 export async function sendManual(orgId: string, conversationId: string, text: string, userId: string): Promise<{ ok: boolean; error?: string }> {
   const bot = await loadOrgBot(orgId);
   if (!bot.number) return { ok: false, error: "WhatsApp isn't connected." };
-  const { data } = await db().from("wa_conversations").select("id, lead_id, phone, last_inbound_at").eq("id", conversationId).eq("org_id", orgId).maybeSingle();
-  const c = data as { id: string; lead_id: string; phone: string; last_inbound_at: string | null } | null;
+  const { data } = await db().from("wa_conversations").select("id, lead_id, phone, state, last_inbound_at").eq("id", conversationId).eq("org_id", orgId).maybeSingle();
+  const c = data as { id: string; lead_id: string; phone: string; state: string; last_inbound_at: string | null } | null;
   if (!c) return { ok: false, error: "Conversation not found." };
+  if (c.state === "opted_out") return { ok: false, error: "This lead unsubscribed." };
   if (!c.last_inbound_at || Date.now() - Date.parse(c.last_inbound_at) > DAY) {
     return { ok: false, error: "WhatsApp only allows free replies within 24 hours of the lead's last message." };
   }

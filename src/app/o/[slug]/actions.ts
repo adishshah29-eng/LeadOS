@@ -175,9 +175,10 @@ export async function sendWhatsAppReply(_prev: ActionState, form: FormData): Pro
   const supabase = await createClient();
   const [{ data: allowed }, { data: conv }] = await Promise.all([
     supabase.rpc("can_reply_conversation", { p_conversation: conversationId }),
-    supabase.from("wa_conversations").select("last_inbound_at").eq("id", conversationId).eq("org_id", ctx.org.id).maybeSingle(),
+    supabase.from("wa_conversations").select("last_inbound_at, state").eq("id", conversationId).eq("org_id", ctx.org.id).maybeSingle(),
   ]);
   if (!allowed || !conv) return { error: "You can't reply to this conversation.", values: v };
+  if (conv.state === "opted_out") return { error: "This lead unsubscribed. They can't be messaged unless they write START.", values: v };
   if (!conv.last_inbound_at || Date.now() - Date.parse(conv.last_inbound_at) > 86_400_000) {
     return { error: "WhatsApp only allows free replies within 24 hours of the lead's last message. Call them instead.", values: v };
   }
