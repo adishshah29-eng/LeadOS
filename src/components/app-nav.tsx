@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { FolderKanban, Inbox, LayoutDashboard, Menu, Settings, Users, X } from "lucide-react";
+import { FolderKanban, Inbox, LayoutDashboard, Menu, MessageCircle, Settings, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ICONS = { overview: LayoutDashboard, leads: Inbox, projects: FolderKanban, team: Users, settings: Settings };
+const ICONS = { overview: LayoutDashboard, leads: Inbox, conversations: MessageCircle, projects: FolderKanban, team: Users, settings: Settings };
 export type NavItem = { key: keyof typeof ICONS; label: string; href: string };
 
 function Links({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {

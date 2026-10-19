@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { adminDb } from "@/server/supabase-admin";
 import { EV, inngest } from "@/server/jobs/client";
+import { applyStatus, type InboundEvent } from "@/server/bot/runner";
 
 /**
  * Meta webhook (leadgen).
@@ -42,7 +43,73 @@ function verifySignature(raw: string, header: string | null) {
 }
 
 type LeadgenValue = { leadgen_id?: string; page_id?: string; form_id?: string; ad_id?: string; created_time?: number };
-type Body = { object?: string; entry?: { id?: string; changes?: { field?: string; value?: LeadgenValue }[] }[] };
+type WaValue = {
+  metadata?: { phone_number_id?: string };
+  contacts?: { wa_id?: string; profile?: { name?: string } }[];
+  messages?: {
+    id: string;
+    from: string;
+    type: string;
+    text?: { body?: string };
+    button?: { text?: string };
+    interactive?: { button_reply?: { id: string; title: string }; list_reply?: { id: string; title: string } };
+  }[];
+  statuses?: { id: string; status: string; errors?: { title?: string; code?: number }[] }[];
+};
+type Body = { object?: string; entry?: { id?: string; changes?: { field?: string; value?: LeadgenValue & WaValue }[] }[] };
+
+/** WhatsApp messages: route by the receiving number's phone_number_id, store, queue. */
+async function handleWhatsApp(body: Body) {
+  const db = adminDb();
+  const inbound: { phoneNumberId: string; event: InboundEvent }[] = [];
+  for (const entry of body.entry ?? []) {
+    for (const change of entry.changes ?? []) {
+      const v = change.value;
+      if (change.field !== "messages" || !v?.metadata?.phone_number_id) continue;
+      for (const st of v.statuses ?? []) {
+        if (st.id && st.status) await applyStatus(st.id, st.status, st.errors?.[0]?.title);
+      }
+      for (const m of v.messages ?? []) {
+        if (!m.id || !/^\d{6,16}$/.test(m.from ?? "")) continue;
+        const reply = m.interactive?.button_reply ?? m.interactive?.list_reply;
+        inbound.push({
+          phoneNumberId: v.metadata.phone_number_id,
+          event: {
+            messageId: m.id,
+            from: m.from,
+            profileName: v.contacts?.find((c) => c.wa_id === m.from)?.profile?.name?.slice(0, 120),
+            type: m.type,
+            text: m.text?.body?.slice(0, 4000),
+            buttonText: m.button?.text?.slice(0, 200),
+            replyId: reply?.id?.slice(0, 200),
+            replyTitle: reply?.title?.slice(0, 200),
+          },
+        });
+      }
+    }
+  }
+  if (!inbound.length) return NextResponse.json({ ok: true });
+
+  const numberIds = [...new Set(inbound.map((i) => i.phoneNumberId))];
+  const { data: ints } = await db.from("integrations").select("external_id, org_id").eq("kind", "whatsapp").eq("status", "active").in("external_id", numberIds);
+  const orgByNumber = new Map(((ints ?? []) as { external_id: string; org_id: string }[]).map((i) => [i.external_id, i.org_id]));
+
+  const rows = inbound.map((i) => ({ kind: "wa.message", dedupe_key: i.event.messageId, org_id: orgByNumber.get(i.phoneNumberId) ?? null, payload: i.event }));
+  const { data: stored, error } = await db.from("webhook_events").upsert(rows as never, { onConflict: "kind,dedupe_key", ignoreDuplicates: true }).select("id, org_id, payload");
+  if (error) {
+    console.error("[webhook] could not store WhatsApp messages", error.message);
+    return new NextResponse("Storage error", { status: 500 });
+  }
+  const toQueue = ((stored ?? []) as { id: string; org_id: string | null; payload: InboundEvent }[]).filter((r) => r.org_id);
+  if (toQueue.length) {
+    try {
+      await inngest.send(toQueue.map((r) => ({ id: `wh-${r.id}`, name: EV.waInbound, data: { webhookEventId: r.id, orgId: r.org_id, from: r.payload.from } })));
+    } catch (err) {
+      console.error("[webhook] queueing WhatsApp failed; sweeper will retry", (err as Error).message);
+    }
+  }
+  return NextResponse.json({ ok: true, stored: stored?.length ?? 0 });
+}
 
 export async function POST(req: NextRequest) {
   const raw = await req.text();
@@ -57,6 +124,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return new NextResponse("Bad JSON", { status: 400 });
   }
+  if (body.object === "whatsapp_business_account") return handleWhatsApp(body);
   if (body.object !== "page") return NextResponse.json({ ok: true, ignored: true });
 
   const leads: LeadgenValue[] = [];

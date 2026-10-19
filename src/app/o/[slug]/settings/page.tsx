@@ -68,15 +68,9 @@ export default async function SettingsPage({ params }: PageProps<"/o/[slug]/sett
               </div>
               <h3 className="mt-3 font-medium">{name}</h3>
               <p className="mt-1 flex-1 text-sm text-fg-muted">{body}</p>
-              {kind === "meta" ? (
-                <Link href={`/o/${ctx.org.slug}/settings/meta`} className={buttonClass("secondary", "sm", "mt-4 self-start")}>
-                  {status === "active" ? "Manage" : status === "needs_reauth" ? "Reconnect" : "Connect"}
-                </Link>
-              ) : (
-                <Button variant="secondary" size="sm" className="mt-4 self-start" disabled title="Coming in the next release">
-                  Connect (coming soon)
-                </Button>
-              )}
+              <Link href={`/o/${ctx.org.slug}/settings/${kind}`} className={buttonClass("secondary", "sm", "mt-4 self-start")}>
+                {status === "active" ? "Manage" : status === "needs_reauth" ? "Reconnect" : "Connect"}
+              </Link>
             </Card>
           );
         })}

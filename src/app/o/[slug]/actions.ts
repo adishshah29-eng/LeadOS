@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { atLeast, requireOrg, type OrgRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUSES, toE164 } from "@/lib/leads";
+import { EV, inngest } from "@/server/jobs/client";
 
 export type ActionState = { error?: string; message?: string; link?: string; values?: Record<string, string> };
 
@@ -149,6 +150,39 @@ export async function addLeadNote(_prev: ActionState, form: FormData): Promise<A
   if (error) return { error: "Couldn't save the note.", values: v };
   revalidatePath(`/o/${ctx.org.slug}/leads/${leadId}`);
   return { message: "Note added." };
+}
+
+// ---------------------------------------------------------------- whatsapp
+
+export async function setBotPaused(form: FormData): Promise<void> {
+  const ctx = await ctxFor(form, "agent");
+  const conversationId = uuid.parse(form.get("conversation_id"));
+  const paused = form.get("paused") === "true";
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_bot_paused", { p_conversation: conversationId, p_paused: paused });
+  if (error) throw new Error("Couldn't change the bot for this lead.");
+  revalidatePath(`/o/${ctx.org.slug}/conversations`);
+}
+
+/** Queues a manual WhatsApp reply; a worker sends it (the token never reaches the web app). */
+export async function sendWhatsAppReply(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const v = values(form, ["text"]);
+  const ctx = await ctxFor(form, "agent");
+  const conversationId = uuid.parse(form.get("conversation_id"));
+  const text = z.string().trim().min(1, "Write a message first.").max(4000).safeParse(v.text);
+  if (!text.success) return { error: text.error.issues[0]?.message, values: v };
+
+  const supabase = await createClient();
+  const [{ data: allowed }, { data: conv }] = await Promise.all([
+    supabase.rpc("can_reply_conversation", { p_conversation: conversationId }),
+    supabase.from("wa_conversations").select("last_inbound_at").eq("id", conversationId).eq("org_id", ctx.org.id).maybeSingle(),
+  ]);
+  if (!allowed || !conv) return { error: "You can't reply to this conversation.", values: v };
+  if (!conv.last_inbound_at || Date.now() - Date.parse(conv.last_inbound_at) > 86_400_000) {
+    return { error: "WhatsApp only allows free replies within 24 hours of the lead's last message. Call them instead.", values: v };
+  }
+  await inngest.send({ name: EV.waManual, data: { orgId: ctx.org.id, conversationId, text: text.data, userId: ctx.userId } });
+  return { message: "Sending… it appears in the chat in a few seconds." };
 }
 
 // -------------------------------------------------------------------- team

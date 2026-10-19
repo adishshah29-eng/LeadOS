@@ -15,7 +15,12 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[s
   const items: NavItem[] = [
     { key: "overview", label: "Overview", href: base },
     // Viewers see dashboards only; lead PII is hidden from them by RLS anyway.
-    ...(ctx.role !== "viewer" ? [{ key: "leads" as const, label: "Leads", href: `${base}/leads` }] : []),
+    ...(ctx.role !== "viewer"
+      ? [
+          { key: "leads" as const, label: "Leads", href: `${base}/leads` },
+          { key: "conversations" as const, label: "WhatsApp", href: `${base}/conversations` },
+        ]
+      : []),
     { key: "projects", label: "Projects", href: `${base}/projects` },
     ...(atLeast(ctx.role, "admin")
       ? [

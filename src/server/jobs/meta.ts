@@ -192,6 +192,7 @@ export const leadsSync = inngest.createFunction(
 
     const sinceUnix = Math.floor(Date.now() / 1000) - data.lookbackDays * 86_400;
     let inserted = 0;
+    const newIds: string[] = [];
     // Batches keep each step short and its retry cheap.
     for (const [i, batch] of chunk(ads, 25).entries()) {
       inserted += await step.run(`fetch-leads-${i}`, async () => {
@@ -202,14 +203,21 @@ export const leadsSync = inngest.createFunction(
             const leads = await fetchAdLeads(token, ad.adId, sinceUnix);
             rows.push(...leads.map((l) => leadRow(l, { project_id: ad.projectId })));
           }
-          if (!rows.length) return 0;
+          if (!rows.length) return [] as string[];
           const { data: ids, error } = await db.rpc("worker_ingest_meta_leads", { p_org: data.orgId, p_rows: rows } as never);
           if (error) throw new Error(error.message);
-          return ((ids as string[] | null) ?? []).length;
+          return (ids as string[] | null) ?? [];
         } catch (err) {
           return handleMetaError(data.orgId, err);
         }
+      }).then((ids) => {
+        newIds.push(...ids);
+        return ids.length;
       });
+    }
+    // New leads get the WhatsApp welcome (the bot itself skips anything older than 24h).
+    if (newIds.length) {
+      await step.sendEvent("start-whatsapp", newIds.map((leadId) => ({ name: EV.waLeadStart, data: { orgId: data.orgId, leadId } })));
     }
     return { ads: ads.length, inserted };
   },
@@ -271,7 +279,11 @@ export const leadReceived = inngest.createFunction(
         } as never);
         if (ingestError) throw new Error(ingestError.message);
         await markProcessed(null);
-        return { inserted: ((ids as string[] | null) ?? []).length };
+        const created = (ids as string[] | null) ?? [];
+        if (created.length) {
+          await inngest.send(created.map((leadId) => ({ id: `wa-start-${leadId}`, name: EV.waLeadStart, data: { orgId: row.org_id!, leadId } })));
+        }
+        return { inserted: created.length };
       } catch (err) {
         await db
           .from("webhook_events")
@@ -346,19 +358,23 @@ export const sweepWebhooks = inngest.createFunction(
       const cutoff = new Date(Date.now() - 2 * 60_000).toISOString();
       const { data, error } = await adminDb()
         .from("webhook_events")
-        .select("id, org_id, attempts")
+        .select("id, kind, org_id, attempts")
         .is("processed_at", null)
         .lt("received_at", cutoff)
         .lt("attempts", 8)
         .order("received_at")
         .limit(200);
       if (error) throw new Error(error.message);
-      return (data ?? []) as { id: string; org_id: string | null; attempts: number }[];
+      return (data ?? []) as { id: string; kind: string; org_id: string | null; attempts: number }[];
     });
     if (stale.length) {
       await step.sendEvent(
         "requeue",
-        stale.map((e) => ({ id: `wh-${e.id}-retry-${e.attempts}`, name: EV.leadReceived, data: { webhookEventId: e.id, orgId: e.org_id ?? "none" } })),
+        stale.map((e) => ({
+          id: `wh-${e.id}-retry-${e.attempts}`,
+          name: e.kind === "wa.message" ? EV.waInbound : EV.leadReceived,
+          data: { webhookEventId: e.id, orgId: e.org_id ?? "none", from: "sweep" },
+        })),
       );
     }
     return { requeued: stale.length };

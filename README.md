@@ -30,7 +30,7 @@ Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + 
 | Meta connect (System User token in Vault), ad account + Page picker | ✅ |
 | Ads + leads sync jobs (Inngest), instant lead webhook with inbox + sweeper | ✅ |
 | Facebook Login (OAuth) connect | ⏳ after Meta App Review |
-| WhatsApp bot per workspace | ⏳ needs a WhatsApp Business number |
+| WhatsApp bot per workspace: welcome template, button questions, scoring, AI answers from your facts, follow-ups, inbox with manual replies | ✅ (needs migration 0005 + a number) |
 | Billing (Razorpay) | ⏳ needs a Razorpay account |
 | Daily / weekly email reports | ⏳ needs a Resend account |
 
@@ -81,6 +81,19 @@ How syncing works:
 
 When Meta rejects a token, the workspace is marked **Reconnect needed** and its jobs stop retrying.
 When Meta's usage headers pass 75%, the job backs off until Meta says the quota is back.
+
+### WhatsApp bot
+
+1. Run [`supabase/migrations/0005_whatsapp_bot.sql`](supabase/migrations/0005_whatsapp_bot.sql).
+2. **Settings → WhatsApp**: paste the Phone number ID and a System User token, then set up the questions,
+   templates and facts, and switch the bot on. It only ever messages leads that arrive after that, within 24h.
+3. In WhatsApp Manager, create the three templates (welcome, nudge, follow-up) with `{{1}}` = first name and
+   `{{2}}` = project; give the welcome quick-reply buttons like "Yes, let's start", "Call me", "Not interested".
+4. Point the Meta app's WhatsApp webhook at `/api/webhooks/meta` (field `messages`).
+5. Optional: `GEMINI_API_KEY` lets the bot understand typed messages and answer questions from your facts.
+
+`WA_DRY_RUN=1` (development only) logs messages instead of sending them. The bot's decisions live in
+`src/server/bot/brain.ts` (pure, unit-tested); sending and saving in `runner.ts`.
 
 ### Make yourself platform admin
 
