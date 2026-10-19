@@ -1,10 +1,10 @@
 # LeadOS (working name)
 
 Multi-tenant SaaS for real-estate teams and agencies: Meta ads reporting, a leads
-pipeline, and (next) WhatsApp follow-up. It replaces the single-firm `meta-crm`
+pipeline, and a WhatsApp bot that welcomes and qualifies every new lead. It replaces the single-firm `meta-crm`
 app. The full plan is in [`docs/PLATFORM_PLAN.md`](docs/PLATFORM_PLAN.md).
 
-Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + Auth + RLS), Tailwind 4.
+Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + Auth + RLS + Vault), Inngest (background jobs), Tailwind 4.
 
 ## What works today
 
@@ -30,12 +30,13 @@ Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + 
 | Meta connect (System User token in Vault), ad account + Page picker | ✅ |
 | Ads + leads sync jobs (Inngest), instant lead webhook with inbox + sweeper | ✅ |
 | Facebook Login (OAuth) connect | ⏳ after Meta App Review |
-| WhatsApp bot per workspace: welcome template, button questions, scoring, AI answers from your facts, follow-ups, inbox with manual replies | ✅ (needs migration 0005 + a number) |
+| WhatsApp bot per workspace: welcome template, button questions, scoring, AI answers from your facts, follow-ups | ✅ (needs migration 0005 + a number) |
+| WhatsApp inbox in two sections, "We messaged" and "Messaged us", with pause-the-bot and manual replies | ✅ |
 | Trial expiry: workspace pauses (leads keep arriving, CSV export still works); admin can extend or set a plan | ✅ (needs migration 0006) |
 | Forgot password / reset by email | ✅ (Supabase's built-in email until Resend is set up) |
 | Onboarding: setup guide for new workspaces, first-visit product tour, help center with step-by-step guides, landing FAQ | ✅ (guides live in `src/lib/guides.ts`) |
 | Privacy policy, terms, data-deletion pages | ✅ (fill in `LEGAL` in `src/lib/brand.ts`) |
-| Billing (Razorpay) | ⏳ needs a Razorpay account |
+| Billing (Stripe) | ⏳ needs a Stripe account (India is invite-only: register the company first) |
 | Daily / weekly email reports | ⏳ needs a Resend account |
 
 ## Setup
@@ -73,6 +74,11 @@ in Supabase, so sign-up logs you straight in.
    `https://<your-domain>/api/webhooks/meta` with `META_WEBHOOK_VERIFY_TOKEN` as the verify token.
    Locally, leads still arrive through the scheduled sync.
 
+A pasted token belongs to whichever Meta app it was generated for. For your own business that's our app,
+so webhooks reach us. A client's token comes from *their* app, so their instant leads and WhatsApp replies
+go there instead; their leads still arrive through the hourly sync. "Continue with Facebook" (Facebook
+Login for Business, after Meta App Review) fixes this.
+
 How syncing works:
 
 | Job | When | What |
@@ -82,6 +88,8 @@ How syncing works:
 | `meta-leads-sync` | per event | Pulls leads for ads that delivered in the last 14 days; existing leads keep their status |
 | `meta-lead-received` | per webhook | Separate lane so instant leads never wait behind syncs |
 | `meta-sweep-webhooks` | every 5 min | Re-queues webhook events that were stored but not processed |
+| `meta-rollups-rebuild` | per event | Rebuilds a workspace's project totals after an ad account is linked, moved or unlinked |
+| `wa-*` | per event / hourly | Welcome, inbound messages (one at a time per phone), manual replies, follow-ups 10:15–19:15 IST, account linking |
 
 When Meta rejects a token, the workspace is marked **Reconnect needed** and its jobs stop retrying.
 When Meta's usage headers pass 75%, the job backs off until Meta says the quota is back.
@@ -92,7 +100,7 @@ When Meta's usage headers pass 75%, the job backs off until Meta says the quota 
 2. **Settings → WhatsApp**: paste the Phone number ID and a System User token, then set up the questions,
    templates and facts, and switch the bot on. It only ever messages leads that arrive after that, within 24h.
    Connecting also finds the customer's WhatsApp Business Account and subscribes our app to it
-   (`subscribed_apps`), so their replies reach us. The customer never touches webhooks. If the token can't
+   (`subscribed_apps`), so their replies reach the app the token belongs to (see the note under Meta). If the token can't
    see the account, the page says so and offers **Check again**.
 3. In WhatsApp Manager, create the three templates (welcome, nudge, follow-up) with `{{1}}` = first name and
    `{{2}}` = project; give the welcome quick-reply buttons like "Yes, let's start", "Call me", "Not interested".
@@ -110,7 +118,7 @@ Run [`supabase/migrations/0006_billing_guard.sql`](supabase/migrations/0006_bill
 workspace admins from changing their own plan, trial date or suspension through the API (only `name` stays
 editable). When a trial ends, every page of the workspace goes to `/o/<slug>/trial-ended`. Lead capture, syncs
 and the CSV export keep working, and the bot finishes conversations already in progress but starts no new
-ones. Until Razorpay is wired in, set a paid plan or extend a trial in `/admin`.
+ones. Until Stripe is wired in, set a paid plan or extend a trial in `/admin`.
 
 ### Make yourself platform admin
 
@@ -133,15 +141,20 @@ A "Platform admin" link then appears in the sidebar (`/admin`).
 - Invite tokens are stored as SHA-256 hashes. The raw link is shown once.
 - `webhook_events` and `sync_runs` writes are worker-only (no RLS policy).
 - The service-role client (`src/server/supabase-admin.ts`) is importable only from `src/server/**` and `src/app/api/**`. ESLint fails the build otherwise.
-- Meta tokens are stored with `connect_meta()` into Supabase Vault. Only `worker_meta_token()` (service role) can decrypt them, and job steps never return a token, so it is never persisted in Inngest.
+- Meta and WhatsApp tokens are stored with `connect_meta()` / `connect_whatsapp()` into Supabase Vault. Only `worker_meta_token()` / `worker_wa_token()` (service role) can decrypt them, and job steps never return a token, so it is never persisted in Inngest.
 
 ## Project layout
 
 ```
-src/app/(auth)/        login, signup, server actions
-src/app/o/[slug]/      workspace: overview, leads, projects, team, settings + actions.ts
+src/app/(auth)/        login, signup, forgot/reset password, server actions
+src/app/o/[slug]/      workspace: overview, setup, leads, conversations, projects, team, settings + actions.ts
 src/app/admin/         platform console
-src/app/invite/        accept invitation
+src/app/help/          public help center (content in src/lib/guides.ts)
+src/app/(legal)/       privacy, terms, data deletion (details in LEGAL, src/lib/brand.ts)
+src/app/api/           Meta/WhatsApp webhook, Inngest endpoint
+src/server/jobs/       background jobs (Meta sync, WhatsApp)
+src/server/bot/        WhatsApp bot: brain (pure), runner, Cloud API client, AI guard
+src/server/meta/       Meta Graph API client
 src/lib/auth.ts        requireUser, requireOrg, atLeast (UI-only checks)
 src/lib/supabase/      server client + session-refresh proxy
 src/components/        UI primitives (tokens in globals.css)
@@ -166,11 +179,16 @@ supabase/migrations/   SQL, run in order
 npm test
 ```
 
-Unit tests (Node's built-in runner) cover the waste/best flags and CSV encoding.
+Unit tests (Node's built-in runner) cover the WhatsApp bot's decisions, the AI reply guard, phone number
+formatting, the waste/best flags and CSV encoding.
 Tenant isolation is tested in the database by `supabase/tests/rls_isolation.sql`.
 
 ## Known gaps (before launch)
 
 - The RLS isolation test runs by hand in the SQL editor; it isn't wired into CI yet.
 - Two-factor login is optional for owners and admins (required for the platform admin console).
-- `ad_daily` uses only a default partition. Monthly partitions get created by the sync job once it exists.
+- `ad_daily` uses only its default partition; nothing creates monthly partitions yet. Fine at current volume.
+- Not deployed yet: needs Vercel (or similar), a domain, Inngest Cloud keys, and the Meta webhook pointed at it.
+- Clients' instant leads and WhatsApp replies need Facebook Login for Business (Meta App Review, Tech Provider).
+- No billing (Stripe) or real email sender (Resend) yet; invites are shared as links.
+- `LEGAL` in `src/lib/brand.ts` holds placeholders; fill in the company details and have a lawyer review the pages.
