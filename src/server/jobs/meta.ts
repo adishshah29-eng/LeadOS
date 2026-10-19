@@ -49,6 +49,18 @@ function todayIn(tz: string, offsetDays = 0) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 }
 
+/** Every row of a query: Supabase returns at most 1,000 rows per request. */
+async function selectAll<T>(page: (from: number, to: number) => PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await page(from, from + 999);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < 1000) return out;
+  }
+}
+
 function chunk<T>(items: T[], size: number) {
   const out: T[][] = [];
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
@@ -175,16 +187,19 @@ export const leadsSync = inngest.createFunction(
     const ads = await step.run("list-active-ads", async () => {
       const windowDays = Math.max(14, data.lookbackDays + 3);
       const since = new Date(Date.now() - windowDays * 86_400_000).toISOString().slice(0, 10);
-      const { data: rows, error } = await db
-        .from("ad_daily")
-        .select("ad_id, ad_accounts!inner(project_id, sync_enabled)")
-        .eq("org_id", data.orgId)
-        .gte("date", since)
-        .gt("impressions", 0)
-        .limit(5000);
-      if (error) throw new Error(error.message);
+      const rows = await selectAll<{ ad_id: string; ad_accounts: { project_id: string | null; sync_enabled: boolean } }>((from, to) =>
+        db
+          .from("ad_daily")
+          .select("ad_id, ad_accounts!inner(project_id, sync_enabled)")
+          .eq("org_id", data.orgId)
+          .gte("date", since)
+          .gt("impressions", 0)
+          .order("date")
+          .order("ad_id")
+          .range(from, to),
+      );
       const map = new Map<string, string | null>();
-      for (const r of (rows ?? []) as unknown as { ad_id: string; ad_accounts: { project_id: string | null; sync_enabled: boolean } }[]) {
+      for (const r of rows) {
         if (r.ad_accounts.sync_enabled && !map.has(r.ad_id)) map.set(r.ad_id, r.ad_accounts.project_id);
       }
       return [...map].map(([adId, projectId]) => ({ adId, projectId }));
@@ -237,7 +252,7 @@ export const leadReceived = inngest.createFunction(
     const { webhookEventId } = z.object({ webhookEventId: uuid, orgId: z.string().optional() }).parse(event.data);
     const db = adminDb();
 
-    return step.run("ingest", async () => {
+    const result = await step.run("ingest", async () => {
       const { data: ev, error } = await db
         .from("webhook_events")
         .select("id, org_id, payload, processed_at, attempts")
@@ -245,14 +260,14 @@ export const leadReceived = inngest.createFunction(
         .maybeSingle();
       if (error) throw new Error(error.message);
       const row = ev as { id: string; org_id: string | null; payload: { leadgen_id: string; page_id: string; ad_id?: string }; processed_at: string | null; attempts: number } | null;
-      if (!row || row.processed_at) return { skipped: true };
+      if (!row || row.processed_at) return { created: [] as string[], orgId: null };
 
       const markProcessed = (lastError: string | null) =>
         db.from("webhook_events").update({ processed_at: new Date().toISOString(), last_error: lastError } as never).eq("id", row.id);
 
       if (!row.org_id) {
         await markProcessed("No workspace owns this Page.");
-        return { skipped: "unrouted" };
+        return { created: [] as string[], orgId: null };
       }
 
       try {
@@ -279,11 +294,7 @@ export const leadReceived = inngest.createFunction(
         } as never);
         if (ingestError) throw new Error(ingestError.message);
         await markProcessed(null);
-        const created = (ids as string[] | null) ?? [];
-        if (created.length) {
-          await inngest.send(created.map((leadId) => ({ id: `wa-start-${leadId}`, name: EV.waLeadStart, data: { orgId: row.org_id!, leadId } })));
-        }
-        return { inserted: created.length };
+        return { created: (ids as string[] | null) ?? [], orgId: row.org_id };
       } catch (err) {
         await db
           .from("webhook_events")
@@ -292,6 +303,11 @@ export const leadReceived = inngest.createFunction(
         return handleMetaError(row.org_id, err);
       }
     });
+    // Outside the step: a failed send retries here instead of being skipped as "already processed".
+    if (result.created.length) {
+      await step.sendEvent("start-whatsapp", result.created.map((leadId) => ({ id: `wa-start-${leadId}`, name: EV.waLeadStart, data: { orgId: result.orgId!, leadId } })));
+    }
+    return { inserted: result.created.length };
   },
 );
 
@@ -315,6 +331,31 @@ export const pageSubscribe = inngest.createFunction(
   },
 );
 
+// ------------------------------------------------------------ rollup rebuild
+
+/**
+ * Re-adds up every project's dashboard numbers from the stored ad days. Needed
+ * when an ad account is linked to a project, moved or unlinked: the ad numbers
+ * didn't change, so a normal sync wouldn't rebuild anything.
+ */
+export const rollupsRebuild = inngest.createFunction(
+  { id: "meta-rollups-rebuild", triggers: [{ event: EV.rollupsRebuild }], concurrency: [{ key: "event.data.orgId", limit: 1 }], retries: 3 },
+  async ({ event, step }) => {
+    const { orgId } = z.object({ orgId: uuid }).parse(event.data);
+    return step.run("rebuild", async () => {
+      const db = adminDb();
+      const { data: projects, error } = await db.from("projects").select("id").eq("org_id", orgId);
+      if (error) throw new Error(error.message);
+      const to = todayIn("Asia/Kolkata", 1);
+      for (const p of (projects ?? []) as { id: string }[]) {
+        const { error: e } = await db.rpc("worker_refresh_rollups", { p_org: orgId, p_project: p.id, p_from: "2000-01-01", p_to: to } as never);
+        if (e) throw new Error(e.message);
+      }
+      return { projects: projects?.length ?? 0 };
+    });
+  },
+);
+
 // ----------------------------------------------------------------- schedules
 
 /** Fans out syncs: hourly for the last 2 days, twice a day for the trailing 7 plus a leads sweep. */
@@ -327,13 +368,12 @@ export const scheduleSyncs = inngest.createFunction(
     const deep = "cron" in (event.data ?? {}) && String((event.data as { cron?: string }).cron).includes("2,14");
     const accounts = await step.run("list-accounts", async () => {
       const db = adminDb();
-      const { data: ints, error: intErr } = await db.from("integrations").select("org_id").eq("kind", "meta").eq("status", "active");
-      if (intErr) throw new Error(intErr.message);
-      const orgIds = ((ints ?? []) as { org_id: string }[]).map((i) => i.org_id);
-      if (!orgIds.length) return [];
-      const { data, error } = await db.from("ad_accounts").select("id, org_id").eq("sync_enabled", true).in("org_id", orgIds);
-      if (error) throw new Error(error.message);
-      return ((data ?? []) as { id: string; org_id: string }[]).map((a) => ({ id: a.id, orgId: a.org_id }));
+      const [ints, accounts] = await Promise.all([
+        selectAll<{ org_id: string }>((from, to) => db.from("integrations").select("org_id").eq("kind", "meta").eq("status", "active").order("org_id").range(from, to)),
+        selectAll<{ id: string; org_id: string }>((from, to) => db.from("ad_accounts").select("id, org_id").eq("sync_enabled", true).order("id").range(from, to)),
+      ]);
+      const active = new Set(ints.map((i) => i.org_id));
+      return accounts.filter((a) => active.has(a.org_id)).map((a) => ({ id: a.id, orgId: a.org_id }));
     });
     if (!accounts.length) return { accounts: 0 };
 
@@ -358,14 +398,14 @@ export const sweepWebhooks = inngest.createFunction(
       const cutoff = new Date(Date.now() - 2 * 60_000).toISOString();
       const { data, error } = await adminDb()
         .from("webhook_events")
-        .select("id, kind, org_id, attempts")
+        .select("id, kind, org_id, attempts, from:payload->>from")
         .is("processed_at", null)
         .lt("received_at", cutoff)
         .lt("attempts", 8)
         .order("received_at")
         .limit(200);
       if (error) throw new Error(error.message);
-      return (data ?? []) as { id: string; kind: string; org_id: string | null; attempts: number }[];
+      return (data ?? []) as { id: string; kind: string; org_id: string | null; attempts: number; from: string | null }[];
     });
     if (stale.length) {
       await step.sendEvent(
@@ -373,7 +413,8 @@ export const sweepWebhooks = inngest.createFunction(
         stale.map((e) => ({
           id: `wh-${e.id}-retry-${e.attempts}`,
           name: e.kind === "wa.message" ? EV.waInbound : EV.leadReceived,
-          data: { webhookEventId: e.id, orgId: e.org_id ?? "none", from: "sweep" },
+          // The real sender keeps a swept message in that phone's one-at-a-time lane.
+          data: { webhookEventId: e.id, orgId: e.org_id ?? "none", from: e.from ?? "sweep" },
         })),
       );
     }
@@ -381,4 +422,4 @@ export const sweepWebhooks = inngest.createFunction(
   },
 );
 
-export const functions = [adsSync, leadsSync, leadReceived, pageSubscribe, scheduleSyncs, sweepWebhooks];
+export const functions = [adsSync, leadsSync, leadReceived, pageSubscribe, rollupsRebuild, scheduleSyncs, sweepWebhooks];

@@ -66,9 +66,7 @@ async function handleWhatsApp(body: Body) {
     for (const change of entry.changes ?? []) {
       const v = change.value;
       if (change.field !== "messages" || !v?.metadata?.phone_number_id) continue;
-      for (const st of v.statuses ?? []) {
-        if (st.id && st.status) await applyStatus(st.id, st.status, st.errors?.[0]?.title);
-      }
+      await Promise.all((v.statuses ?? []).filter((st) => st.id && st.status).map((st) => applyStatus(st.id, st.status, st.errors?.[0]?.title)));
       for (const m of v.messages ?? []) {
         if (!m.id || !/^\d{6,16}$/.test(m.from ?? "")) continue;
         const reply = m.interactive?.button_reply ?? m.interactive?.list_reply;

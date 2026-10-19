@@ -67,9 +67,10 @@ export function checkReply(reply: string, facts: string): string | null {
   const r = reply.replace(/\s+/g, " ").trim();
   if (!r || r.length > 600) return null;
   if (BAD_OUTPUT.some((p) => p.test(r))) return null;
-  const factDigits = facts.replace(/,/g, "");
+  // Whole numbers only: "1" must not pass because the facts say "1.15".
+  const factNumbers = new Set(facts.replace(/,/g, "").match(/\d+(\.\d+)?/g) ?? []);
   for (const n of r.replace(/,/g, "").match(/\d+(\.\d+)?/g) ?? []) {
-    if (!factDigits.includes(n)) return null;
+    if (!factNumbers.has(n)) return null;
   }
   return r;
 }

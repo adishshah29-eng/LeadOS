@@ -13,6 +13,7 @@ export const EV = {
   leadsSync: "meta/leads.sync",
   leadReceived: "meta/lead.received",
   pageSubscribe: "meta/page.subscribe",
+  rollupsRebuild: "meta/rollups.rebuild",
   waLeadStart: "wa/lead.start",
   waInbound: "wa/message.received",
   waManual: "wa/send.manual",

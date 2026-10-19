@@ -175,8 +175,6 @@ export async function linkWaba(token: string, phoneNumberId: string, hint?: stri
   }
 }
 
-export type WabaLink = Awaited<ReturnType<typeof linkWaba>>;
-
 /** The token was revoked or expired: the workspace has to reconnect. */
 export const isAuthSendError = (code?: number) => code === 190 || code === 102;
 

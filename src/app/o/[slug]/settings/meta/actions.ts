@@ -88,8 +88,9 @@ export async function saveMetaSetup(_prev: ActionState, form: FormData): Promise
   const chosenAccounts = new Set(form.getAll("account").map(String));
   const chosenPages = new Set(form.getAll("page").map(String));
 
-  const { data: existingAccounts } = await supabase.from("ad_accounts").select("id, meta_account_id, sync_enabled").eq("org_id", ctx.org.id);
+  const { data: existingAccounts } = await supabase.from("ad_accounts").select("id, meta_account_id, sync_enabled, project_id").eq("org_id", ctx.org.id);
   const wasEnabled = new Map((existingAccounts ?? []).map((a) => [a.meta_account_id, a.sync_enabled]));
+  const oldProject = new Map((existingAccounts ?? []).map((a) => [a.meta_account_id, a.project_id as string | null]));
 
   const accountRows = available.adAccounts
     .filter((a) => chosenAccounts.has(a.id) || wasEnabled.has(a.id))
@@ -134,6 +135,10 @@ export async function saveMetaSetup(_prev: ActionState, form: FormData): Promise
     // Leads for the same window. Runs after the ads sync has had a moment to
     // record which ads delivered (the leads job reads that list).
     { name: EV.leadsSync, data: { orgId: ctx.org.id, lookbackDays: 30 }, ts: Date.now() + 90_000 },
+    // An account linked, moved or unlinked: its stored days must move to the right project's totals.
+    ...(accountRows.some((r) => oldProject.has(r.meta_account_id) && oldProject.get(r.meta_account_id) !== r.project_id)
+      ? [{ name: EV.rollupsRebuild, data: { orgId: ctx.org.id } }]
+      : []),
   ];
   try {
     if (events.length) await inngest.send(events);
