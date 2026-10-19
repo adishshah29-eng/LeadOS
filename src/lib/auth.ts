@@ -49,11 +49,27 @@ export const listMyOrgs = cache(async () => {
   });
 });
 
+/** The free trial ended and no paid plan has started. */
+export function trialLapsed(org: { plan: string; trial_ends_at: string }, now = Date.now()) {
+  return org.plan === "trial" && Date.parse(org.trial_ends_at) <= now;
+}
+
 /**
  * Resolves /o/[slug] to an org the user is a member of. A slug the user isn't
  * a member of is a 404 (not 403), so org names can't be probed.
+ *
+ * A workspace whose trial lapsed is sent to its trial-ended page, which
+ * blocks every page and server action that calls this. Pass
+ * `{ allowLapsed: true }` only where a paused workspace must still work:
+ * the layout, the trial-ended page and the CSV export.
  */
-export const requireOrg = cache(async (slug: string): Promise<OrgContext> => {
+export async function requireOrg(slug: string, opts?: { allowLapsed?: boolean }): Promise<OrgContext> {
+  const ctx = await loadOrg(slug);
+  if (!opts?.allowLapsed && trialLapsed(ctx.org)) redirect(`/o/${ctx.org.slug}/trial-ended`);
+  return ctx;
+}
+
+const loadOrg = cache(async (slug: string): Promise<OrgContext> => {
   const user = await requireUser();
   const supabase = await createClient();
   const { data: org, error } = await supabase

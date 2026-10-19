@@ -16,4 +16,5 @@ export const EV = {
   waLeadStart: "wa/lead.start",
   waInbound: "wa/message.received",
   waManual: "wa/send.manual",
+  waLink: "wa/waba.link",
 } as const;

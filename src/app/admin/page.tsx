@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { isPlatformAdmin } from "@/lib/auth";
+import { isPlatformAdmin, trialLapsed } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusForm } from "./status-form";
+import { PlanForm } from "./plan-form";
 
 export const metadata: Metadata = { title: "Platform admin", robots: { index: false } };
 
@@ -60,7 +61,7 @@ export default async function AdminPage() {
               <th scope="col" className="px-4 py-2.5">Plan</th>
               <th scope="col" className="px-4 py-2.5">Members</th>
               <th scope="col" className="px-4 py-2.5">Created</th>
-              {role === "super_admin" ? <th scope="col" className="px-4 py-2.5">Access</th> : null}
+              {role === "super_admin" ? <th scope="col" className="px-4 py-2.5">Plan and access</th> : null}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -74,12 +75,20 @@ export default async function AdminPage() {
                   <Badge tone={o.status === "suspended" ? "danger" : o.plan === "trial" ? "neutral" : "success"}>
                     {o.status === "suspended" ? "Suspended" : o.plan}
                   </Badge>
+                  {o.plan === "trial" ? (
+                    <p className="mt-1 text-xs text-fg-subtle">
+                      {trialLapsed(o) ? "Ended" : "Ends"} {new Date(o.trial_ends_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                    </p>
+                  ) : null}
                 </td>
                 <td className="tabular px-4 py-2.5">{(o.memberships as unknown as { count: number }[])[0]?.count ?? 0}</td>
                 <td className="tabular px-4 py-2.5 text-fg-muted">{new Date(o.created_at).toLocaleDateString("en-IN")}</td>
                 {role === "super_admin" ? (
                   <td className="px-4 py-2.5">
-                    <StatusForm orgId={o.id} orgName={o.name} suspended={o.status === "suspended"} />
+                    <div className="space-y-2">
+                      <PlanForm orgId={o.id} orgName={o.name} plan={o.plan} />
+                      <StatusForm orgId={o.id} orgName={o.name} suspended={o.status === "suspended"} />
+                    </div>
                   </td>
                 ) : null}
               </tr>

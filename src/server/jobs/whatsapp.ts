@@ -4,6 +4,7 @@ import { NonRetriableError } from "inngest";
 import { adminDb } from "@/server/supabase-admin";
 import { EV, inngest } from "./client";
 import { handleInbound, runFollowups, sendManual, startForLead, type InboundEvent } from "@/server/bot/runner";
+import { linkWaba } from "@/server/bot/whatsapp";
 
 /*
  * WhatsApp bot jobs. Inbound messages from one phone number are handled one
@@ -92,4 +93,28 @@ export const waFollowups = inngest.createFunction(
   },
 );
 
-export const whatsappFunctions = [waLeadStart, waInbound, waManual, waFollowups];
+/**
+ * "Check again" in Settings → WhatsApp: finds the WhatsApp Business Account
+ * and subscribes our app to it. Runs here because the token lives in Vault,
+ * which only workers can read; the result is merged into integrations.available.
+ */
+export const waLink = inngest.createFunction(
+  { id: "wa-link-account", triggers: [{ event: EV.waLink }], concurrency: [{ key: "event.data.orgId", limit: 1 }], retries: 1 },
+  async ({ event, step }) => {
+    const d = z.object({ orgId: uuid, wabaId: z.string().regex(/^\d{6,20}$/).nullish() }).parse(event.data);
+    return step.run("link", async () => {
+      const db = adminDb();
+      const [{ data: integ }, { data: token }] = await Promise.all([
+        db.from("integrations").select("external_id, available").eq("org_id", d.orgId).eq("kind", "whatsapp").eq("status", "active").maybeSingle(),
+        db.rpc("worker_wa_token", { p_org: d.orgId }),
+      ]);
+      const i = integ as { external_id: string | null; available: Record<string, unknown> | null } | null;
+      if (!i?.external_id || !token) throw new NonRetriableError("WhatsApp is not connected for this workspace.");
+      const link = await linkWaba(token as string, i.external_id, d.wabaId ?? (i.available?.waba_id as string | undefined));
+      await db.from("integrations").update({ available: { ...(i.available ?? {}), ...link }, last_checked_at: new Date().toISOString() } as never).eq("org_id", d.orgId).eq("kind", "whatsapp");
+      return { linked: !!link.subscribed_at, wabaId: link.waba_id };
+    });
+  },
+);
+
+export const whatsappFunctions = [waLeadStart, waInbound, waManual, waFollowups, waLink];

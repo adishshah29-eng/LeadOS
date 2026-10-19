@@ -2,7 +2,7 @@ import "server-only";
 import { adminDb } from "@/server/supabase-admin";
 import { nextFollowupAt, processMessage, shouldStopFollowups, type ConvPatch, type Conversation, type Inbound, type Outbound } from "./brain";
 import { FOLLOWUPS, settingsFromRow, type BotSettings } from "./settings";
-import { isPermanentSendError, markRead, sendOutbound, sendTemplate, type SendResult, type WaNumber } from "./whatsapp";
+import { isAuthSendError, isPermanentSendError, markRead, sendOutbound, sendTemplate, type SendResult, type WaNumber } from "./whatsapp";
 import { aiBudgetLeft, geminiClassifier } from "./llm";
 
 /**
@@ -16,16 +16,21 @@ const db = () => adminDb();
 const firstName = (n?: string | null) => (n || "").trim().split(/\s+/)[0] || "there";
 export const digits = (phone: string | null | undefined) => (phone ?? "").replace(/\D/g, "");
 
-export type OrgBot = { orgId: string; settings: BotSettings; number: WaNumber | null };
+/**
+ * `lapsed`: the free trial ended without a paid plan. The bot then starts no
+ * new conversations and sends no follow-ups, but still answers people who are
+ * already mid-chat, so nobody is left hanging.
+ */
+export type OrgBot = { orgId: string; settings: BotSettings; number: WaNumber | null; lapsed: boolean };
 
 export async function loadOrgBot(orgId: string): Promise<OrgBot> {
   const [{ data: org }, { data: row }, { data: integ }, { data: token }] = await Promise.all([
-    db().from("organizations").select("name, status").eq("id", orgId).maybeSingle(),
+    db().from("organizations").select("name, status, plan, trial_ends_at").eq("id", orgId).maybeSingle(),
     db().from("bot_settings").select("*").eq("org_id", orgId).maybeSingle(),
     db().from("integrations").select("external_id, status").eq("org_id", orgId).eq("kind", "whatsapp").maybeSingle(),
     db().rpc("worker_wa_token", { p_org: orgId }),
   ]);
-  const o = org as { name: string; status: string } | null;
+  const o = org as { name: string; status: string; plan: string; trial_ends_at: string } | null;
   const i = integ as { external_id: string | null; status: string } | null;
   const settings = settingsFromRow(row as Record<string, unknown> | null, o?.name ?? "");
   // Development dry-run (WA_DRY_RUN=1) needs no real token: nothing is actually sent.
@@ -33,10 +38,19 @@ export async function loadOrgBot(orgId: string): Promise<OrgBot> {
   const tok = (token as string | null) ?? (dryRun ? "dry-run" : null);
   // A suspended workspace never sends.
   const usable = o?.status === "active" && i?.status === "active" && i.external_id && tok;
-  return { orgId, settings, number: usable ? { phoneNumberId: i!.external_id!, token: tok! } : null };
+  const lapsed = o?.plan === "trial" && Date.parse(o.trial_ends_at) <= Date.now();
+  return { orgId, settings, number: usable ? { phoneNumberId: i!.external_id!, token: tok! } : null, lapsed };
 }
 
 async function recordOut(orgId: string, convId: string, kind: string, body: string, r: SendResult, sentBy?: string) {
+  // Revoked or expired token: stop using it and ask the workspace to reconnect.
+  if (!r.ok && isAuthSendError(r.code)) {
+    await db()
+      .from("integrations")
+      .update({ status: "needs_reauth", last_error: (r.error ?? "WhatsApp token rejected").slice(0, 500) } as never)
+      .eq("org_id", orgId)
+      .eq("kind", "whatsapp");
+  }
   await db().from("wa_messages").insert({
     org_id: orgId,
     conversation_id: convId,
@@ -72,6 +86,7 @@ export async function startForLead(orgId: string, leadId: string): Promise<{ sta
   const bot = await loadOrgBot(orgId);
   if (!bot.settings.enabled) return { started: false, reason: "bot off" };
   if (!bot.number) return { started: false, reason: "WhatsApp not connected" };
+  if (bot.lapsed) return { started: false, reason: "trial ended" };
 
   const { data: leadRow } = await db().from("leads").select("id, name, phone_e164, lead_created_at, project_id, projects(name)").eq("id", leadId).eq("org_id", orgId).maybeSingle();
   const lead = leadRow as { id: string; name: string | null; phone_e164: string | null; lead_created_at: string; project_id: string | null; projects: { name: string } | null } | null;
@@ -231,7 +246,7 @@ export async function sendManual(orgId: string, conversationId: string, text: st
 export async function runFollowups(orgId: string): Promise<{ sent: number; stopped: number; failed: number }> {
   const bot = await loadOrgBot(orgId);
   const result = { sent: 0, stopped: 0, failed: 0 };
-  if (!bot.number || !bot.settings.enabled) return result;
+  if (!bot.number || !bot.settings.enabled || bot.lapsed) return result;
 
   const { data } = await db()
     .from("wa_conversations")

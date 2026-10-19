@@ -1,5 +1,5 @@
 import "server-only";
-import { GRAPH, graphGet } from "@/server/meta/graph";
+import { GRAPH, graphGet, graphPost, MetaApiError } from "@/server/meta/graph";
 import type { Outbound } from "./brain";
 
 /**
@@ -115,6 +115,70 @@ export async function describeNumber(token: string, phoneNumberId: string) {
     token,
   );
 }
+
+/**
+ * Finds the WhatsApp Business Account that owns this number. Tries the
+ * account the customer typed (if any), then every account the token was
+ * granted (debug_token lists them), and keeps the one whose phone numbers
+ * include this id. Null when the token can't see the account.
+ */
+export async function findWaba(token: string, phoneNumberId: string, hint?: string | null): Promise<string | null> {
+  const candidates = new Set<string>(hint ? [hint] : []);
+  try {
+    const dbg = await graphGet<{ data?: { granular_scopes?: { scope: string; target_ids?: string[] }[] } }>(
+      `${GRAPH}/debug_token?input_token=${encodeURIComponent(token)}`,
+      token,
+    );
+    for (const s of dbg.data?.granular_scopes ?? []) {
+      if (s.scope.startsWith("whatsapp_business")) for (const id of s.target_ids ?? []) candidates.add(id);
+    }
+  } catch (err) {
+    if (!(err instanceof MetaApiError)) throw err;
+  }
+  for (const waba of candidates) {
+    if (!/^\d{6,20}$/.test(waba)) continue;
+    try {
+      const nums = await graphGet<{ data?: { id: string }[] }>(`${GRAPH}/${waba}/phone_numbers?fields=id&limit=100`, token);
+      if (nums.data?.some((n) => n.id === phoneNumberId)) return waba;
+    } catch (err) {
+      if (!(err instanceof MetaApiError)) throw err;
+    }
+  }
+  return null;
+}
+
+/**
+ * Subscribes our Meta app to the customer's WhatsApp Business Account, so
+ * their customers' replies reach /api/webhooks/meta. Without this the bot
+ * can send but never hears back.
+ */
+export async function subscribeWaba(token: string, wabaId: string): Promise<void> {
+  await graphPost(`${GRAPH}/${wabaId}/subscribed_apps`, token, {});
+}
+
+/** Connect-time check: which account owns the number, and is it subscribed to us. */
+export async function linkWaba(token: string, phoneNumberId: string, hint?: string | null) {
+  const wabaId = await findWaba(token, phoneNumberId, hint);
+  if (!wabaId) {
+    return {
+      waba_id: null,
+      subscribed_at: null,
+      subscribe_error: "This token can't see the WhatsApp Business Account that owns the number. Give the System User full control of that WhatsApp account, or enter its ID.",
+    };
+  }
+  try {
+    await subscribeWaba(token, wabaId);
+    return { waba_id: wabaId, subscribed_at: new Date().toISOString(), subscribe_error: null };
+  } catch (err) {
+    if (!(err instanceof MetaApiError)) throw err;
+    return { waba_id: wabaId, subscribed_at: null, subscribe_error: err.message.slice(0, 300) };
+  }
+}
+
+export type WabaLink = Awaited<ReturnType<typeof linkWaba>>;
+
+/** The token was revoked or expired: the workspace has to reconnect. */
+export const isAuthSendError = (code?: number) => code === 190 || code === 102;
 
 /** Permanent errors: retrying tomorrow won't help (number not on WhatsApp, template problems). */
 export const isPermanentSendError = (code?: number) => code === 131026 || (code !== undefined && code >= 132000 && code < 133000);

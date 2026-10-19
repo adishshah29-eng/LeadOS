@@ -14,7 +14,7 @@ const PAGE = 1000;
 
 export async function GET(req: NextRequest, { params }: RouteContext<"/o/[slug]/leads/export">) {
   const { slug } = await params;
-  const ctx = await requireOrg(slug);
+  const ctx = await requireOrg(slug, { allowLapsed: true });
   if (!atLeast(ctx.role, "admin")) return new NextResponse("Only owners and admins can export leads.", { status: 403 });
 
   const sp = req.nextUrl.searchParams;

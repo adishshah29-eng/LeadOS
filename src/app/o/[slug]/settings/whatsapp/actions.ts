@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 import { atLeast, requireOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { MetaApiError, MetaAuthError } from "@/server/meta/graph";
-import { describeNumber } from "@/server/bot/whatsapp";
+import { describeNumber, linkWaba } from "@/server/bot/whatsapp";
+import { EV, inngest } from "@/server/jobs/client";
 import { DEFAULT_QUESTIONS, settingsFromRow, type Question } from "@/server/bot/settings";
 import type { ActionState } from "../../actions";
 
@@ -18,20 +19,30 @@ async function adminCtx(form: FormData) {
   return ctx;
 }
 
-/** Checks the number with Meta, then stores the token in Vault via connect_whatsapp(). */
+const wabaField = z.union([z.literal(""), z.string().trim().regex(/^\d{6,20}$/, "The WhatsApp Business Account ID is a long number (WhatsApp Manager → Account tools → Account info).")]);
+
+/**
+ * Checks the number with Meta, finds the WhatsApp Business Account that owns
+ * it and subscribes our app to it (so replies reach us), then stores the
+ * token in Vault via connect_whatsapp(). The customer never configures webhooks.
+ */
 export async function connectWhatsApp(_prev: ActionState, form: FormData): Promise<ActionState> {
   const ctx = await adminCtx(form);
   const parsed = z
     .object({
       token: z.string().trim().min(20, "That doesn't look like an access token.").max(2000),
       phone_number_id: z.string().trim().regex(/^\d{6,20}$/, "The Phone number ID is the long number under API Setup, not the phone number itself."),
+      waba_id: wabaField,
     })
-    .safeParse({ token: form.get("token"), phone_number_id: form.get("phone_number_id") });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message, values: { phone_number_id: String(form.get("phone_number_id") ?? "") } };
+    .safeParse({ token: form.get("token"), phone_number_id: form.get("phone_number_id"), waba_id: String(form.get("waba_id") ?? "").trim() });
+  const values = { phone_number_id: String(form.get("phone_number_id") ?? ""), waba_id: String(form.get("waba_id") ?? "") };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message, values };
 
   let number: Awaited<ReturnType<typeof describeNumber>>;
+  let link: Awaited<ReturnType<typeof linkWaba>>;
   try {
     number = await describeNumber(parsed.data.token, parsed.data.phone_number_id);
+    link = await linkWaba(parsed.data.token, parsed.data.phone_number_id, parsed.data.waba_id || null);
   } catch (err) {
     if (err instanceof MetaAuthError) return { error: "Meta rejected this token. It needs whatsapp_business_messaging and whatsapp_business_management." };
     if (err instanceof MetaApiError) return { error: `Meta couldn't find that number: ${err.message}` };
@@ -44,7 +55,7 @@ export async function connectWhatsApp(_prev: ActionState, form: FormData): Promi
     p_token: parsed.data.token,
     p_phone_number_id: parsed.data.phone_number_id,
     p_display_name: `${number.verified_name} (${number.display_phone_number})`,
-    p_available: { display_phone_number: number.display_phone_number, verified_name: number.verified_name, quality_rating: number.quality_rating ?? null },
+    p_available: { display_phone_number: number.display_phone_number, verified_name: number.verified_name, quality_rating: number.quality_rating ?? null, ...link },
   });
   if (error) {
     return {
@@ -58,6 +69,19 @@ export async function connectWhatsApp(_prev: ActionState, form: FormData): Promi
   }
   revalidatePath(`/o/${ctx.org.slug}/settings`, "layout");
   redirect(`/o/${ctx.org.slug}/settings/whatsapp?connected=1`);
+}
+
+/** Retries finding and subscribing the WhatsApp Business Account (a worker does it: the token is in Vault). */
+export async function recheckWhatsApp(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const ctx = await adminCtx(form);
+  const waba = wabaField.safeParse(String(form.get("waba_id") ?? "").trim());
+  if (!waba.success) return { error: waba.error.issues[0]?.message, values: { waba_id: String(form.get("waba_id") ?? "") } };
+  try {
+    await inngest.send({ name: EV.waLink, data: { orgId: ctx.org.id, wabaId: waba.data || null } });
+  } catch {
+    return { error: "The background worker isn't reachable. Is the Inngest dev server running?" };
+  }
+  return { message: "Checking with Meta. Refresh this page in a few seconds." };
 }
 
 export async function disconnectWhatsApp(form: FormData): Promise<void> {

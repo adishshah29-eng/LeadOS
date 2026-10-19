@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Check, Lock } from "lucide-react";
-import { BRAND } from "@/lib/brand";
+import { BRAND, LEGAL_LINKS } from "@/lib/brand";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Meter } from "@/components/landing/meter";
@@ -168,6 +168,11 @@ export default function Home() {
       <footer className="border-t border-border">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-fg-subtle sm:px-6">
           <span className="flex items-center gap-2"><Logo className="size-5" /> © {new Date().getFullYear()} {BRAND.name}</span>
+          <nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
+            {LEGAL_LINKS.map((l) => (
+              <Link key={l.href} href={l.href} className="hover:text-fg hover:underline">{l.label}</Link>
+            ))}
+          </nav>
           <ThemeToggle />
         </div>
       </footer>

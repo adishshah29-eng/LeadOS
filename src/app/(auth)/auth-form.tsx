@@ -35,6 +35,11 @@ export function AuthForm({ mode, next, notice }: { mode: "login" | "signup"; nex
           aria-describedby={isSignup ? "password-hint" : undefined}
         />
       </Field>
+      {!isSignup ? (
+        <p className="-mt-2 text-right text-sm">
+          <Link href="/forgot-password" className="link">Forgot password?</Link>
+        </p>
+      ) : null}
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
         {isSignup ? "Create account" : "Sign in"}

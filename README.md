@@ -31,6 +31,9 @@ Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + 
 | Ads + leads sync jobs (Inngest), instant lead webhook with inbox + sweeper | ✅ |
 | Facebook Login (OAuth) connect | ⏳ after Meta App Review |
 | WhatsApp bot per workspace: welcome template, button questions, scoring, AI answers from your facts, follow-ups, inbox with manual replies | ✅ (needs migration 0005 + a number) |
+| Trial expiry: workspace pauses (leads keep arriving, CSV export still works); admin can extend or set a plan | ✅ (needs migration 0006) |
+| Forgot password / reset by email | ✅ (Supabase's built-in email until Resend is set up) |
+| Privacy policy, terms, data-deletion pages | ✅ (fill in `LEGAL` in `src/lib/brand.ts`) |
 | Billing (Razorpay) | ⏳ needs a Razorpay account |
 | Daily / weekly email reports | ⏳ needs a Resend account |
 
@@ -87,13 +90,26 @@ When Meta's usage headers pass 75%, the job backs off until Meta says the quota 
 1. Run [`supabase/migrations/0005_whatsapp_bot.sql`](supabase/migrations/0005_whatsapp_bot.sql).
 2. **Settings → WhatsApp**: paste the Phone number ID and a System User token, then set up the questions,
    templates and facts, and switch the bot on. It only ever messages leads that arrive after that, within 24h.
+   Connecting also finds the customer's WhatsApp Business Account and subscribes our app to it
+   (`subscribed_apps`), so their replies reach us. The customer never touches webhooks. If the token can't
+   see the account, the page says so and offers **Check again**.
 3. In WhatsApp Manager, create the three templates (welcome, nudge, follow-up) with `{{1}}` = first name and
    `{{2}}` = project; give the welcome quick-reply buttons like "Yes, let's start", "Call me", "Not interested".
-4. Point the Meta app's WhatsApp webhook at `/api/webhooks/meta` (field `messages`).
+4. **Platform setup, once (you, not each customer):** in *our* Meta app → WhatsApp → Configuration, set the
+   callback URL to `https://<your-domain>/api/webhooks/meta` with `META_WEBHOOK_VERIFY_TOKEN`, and subscribe the
+   `messages` field.
 5. Optional: `GEMINI_API_KEY` lets the bot understand typed messages and answer questions from your facts.
 
 `WA_DRY_RUN=1` (development only) logs messages instead of sending them. The bot's decisions live in
 `src/server/bot/brain.ts` (pure, unit-tested); sending and saving in `runner.ts`.
+
+### Trial and plans
+
+Run [`supabase/migrations/0006_billing_guard.sql`](supabase/migrations/0006_billing_guard.sql). It also stops
+workspace admins from changing their own plan, trial date or suspension through the API (only `name` stays
+editable). When a trial ends, every page of the workspace goes to `/o/<slug>/trial-ended`. Lead capture, syncs
+and the CSV export keep working, and the bot finishes conversations already in progress but starts no new
+ones. Until Razorpay is wired in, set a paid plan or extend a trial in `/admin`.
 
 ### Make yourself platform admin
 

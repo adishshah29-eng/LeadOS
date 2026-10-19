@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default async function OrgLayout({ children, params }: LayoutProps<"/o/[slug]">) {
   const { slug } = await params;
-  const [ctx, orgs, platformRole] = await Promise.all([requireOrg(slug), listMyOrgs(), isPlatformAdmin()]);
+  const [ctx, orgs, platformRole] = await Promise.all([requireOrg(slug, { allowLapsed: true }), listMyOrgs(), isPlatformAdmin()]);
   const base = `/o/${ctx.org.slug}`;
 
   const items: NavItem[] = [

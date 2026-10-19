@@ -4,13 +4,14 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { atLeast, requireOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { BRAND } from "@/lib/brand";
 import { settingsFromRow } from "@/server/bot/settings";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { ActionForm, SubmitButton } from "@/components/action-form";
-import { connectWhatsApp, disconnectWhatsApp, resetQuestions, saveBotSettings } from "./actions";
+import { connectWhatsApp, disconnectWhatsApp, recheckWhatsApp, resetQuestions, saveBotSettings } from "./actions";
 
 export const metadata: Metadata = { title: "WhatsApp" };
 
@@ -30,7 +31,7 @@ export default async function WhatsAppSettings({ params, searchParams }: PagePro
   ]);
   const connected = integ?.status === "active";
   const s = settingsFromRow(row as Record<string, unknown> | null, ctx.org.name);
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain";
+  const link = (integ?.available ?? {}) as { waba_id?: string | null; subscribed_at?: string | null; subscribe_error?: string | null };
 
   return (
     <>
@@ -48,6 +49,12 @@ export default async function WhatsAppSettings({ params, searchParams }: PagePro
           Dry-run mode is on (WA_DRY_RUN=1): messages are logged, not sent. Remove it from .env.local to message real leads.
         </p>
       ) : null}
+      {integ?.status === "needs_reauth" ? (
+        <p role="alert" className="mb-4 rounded-md bg-warning-soft px-3 py-2 text-sm text-warning">
+          Meta stopped accepting the saved WhatsApp token, so the bot has stopped sending. Paste a new token below to resume.
+          {integ.last_error ? ` (${integ.last_error})` : ""}
+        </p>
+      ) : null}
       {sp.connected ? (
         <p role="status" className="mb-4 rounded-md bg-success-soft px-3 py-2 text-sm text-success">
           Number connected. Set up the bot below, then switch it on.
@@ -56,11 +63,11 @@ export default async function WhatsAppSettings({ params, searchParams }: PagePro
 
       {!connected ? (
         <Card className="mb-6 max-w-2xl p-5">
-          <h2 className="font-medium">Connect your WhatsApp Business number</h2>
+          <h2 className="font-medium">{integ?.status === "needs_reauth" ? "Reconnect" : "Connect"} your WhatsApp Business number</h2>
           <ol className="mt-2 mb-4 list-decimal space-y-1 pl-5 text-sm text-fg-muted">
-            <li>In Meta Business Settings, add the WhatsApp number to your WhatsApp Business Account.</li>
-            <li>Give your System User access to that account and generate a token with <code className="font-mono text-xs">whatsapp_business_messaging</code> and <code className="font-mono text-xs">whatsapp_business_management</code>.</li>
-            <li>In the Meta app → WhatsApp → API Setup, copy the <strong className="font-medium text-fg">Phone number ID</strong> (a long number, not the phone number).</li>
+            <li>In Meta Business Settings → Users → System users, give your System User <strong className="font-medium text-fg">full control</strong> of your WhatsApp account.</li>
+            <li>Generate a token for it with <code className="font-mono text-xs">whatsapp_business_messaging</code> and <code className="font-mono text-xs">whatsapp_business_management</code>, set to never expire.</li>
+            <li>In WhatsApp Manager → Phone numbers, copy the <strong className="font-medium text-fg">Phone number ID</strong> (a long number, not the phone number).</li>
           </ol>
           <ActionForm action={connectWhatsApp} slug={ctx.org.slug}>
             <Field label="Phone number ID" htmlFor="wa-pnid">
@@ -69,17 +76,32 @@ export default async function WhatsAppSettings({ params, searchParams }: PagePro
             <Field label="Access token" htmlFor="wa-token" hint="Stored encrypted. Nobody can view it again after saving.">
               <Input id="wa-token" name="token" type="password" autoComplete="off" spellCheck={false} required aria-describedby="wa-token-hint" />
             </Field>
+            <Field label="WhatsApp Business Account ID (optional)" htmlFor="wa-waba" hint="Only needed if we can't find it ourselves.">
+              <Input id="wa-waba" name="waba_id" inputMode="numeric" aria-describedby="wa-waba-hint" />
+            </Field>
             <SubmitButton pendingLabel="Checking with Meta…">Connect number</SubmitButton>
           </ActionForm>
         </Card>
+      ) : link.subscribed_at ? (
+        <p role="status" className="mb-6 rounded-md bg-success-soft px-3 py-2 text-sm text-success">
+          Receiving replies: your WhatsApp account is linked to {BRAND.name}.
+        </p>
       ) : (
-        <Card className="mb-6 p-5">
-          <h2 className="font-medium">Receiving messages</h2>
+        <Card className="mb-6 max-w-2xl border-warning p-5">
+          <h2 className="font-medium">Not receiving replies yet</h2>
           <p className="mt-1 text-sm text-fg-muted">
-            In your Meta app → WhatsApp → Configuration, set the callback URL to{" "}
-            <code className="font-mono text-xs break-all text-fg">{site}/api/webhooks/meta</code>, use your verify token, and subscribe to the{" "}
-            <code className="font-mono text-xs">messages</code> field. Without this, the bot can send but won&apos;t see replies.
+            The bot can send, but it won&apos;t see what leads write back until your WhatsApp Business Account is linked.
+            {link.subscribe_error ? ` Reason: ${link.subscribe_error}` : ""}
           </p>
+          <p className="mt-2 text-sm text-fg-muted">
+            Fix: in Meta Business Settings → System users, give the System User full control of the WhatsApp account, then check again. If it still fails, paste the account ID from WhatsApp Manager → Account tools → Account info.
+          </p>
+          <ActionForm action={recheckWhatsApp} slug={ctx.org.slug} className="mt-4 flex flex-wrap items-end gap-3">
+            <Field label="WhatsApp Business Account ID (optional)" htmlFor="wa-waba-recheck">
+              <Input id="wa-waba-recheck" name="waba_id" inputMode="numeric" defaultValue={link.waba_id ?? ""} />
+            </Field>
+            <SubmitButton pendingLabel="Checking…" size="sm">Check again</SubmitButton>
+          </ActionForm>
         </Card>
       )}
 
