@@ -13,6 +13,7 @@ import { buttonClass } from "@/components/ui/button";
 import { TrendChart } from "@/components/trend-chart";
 import { DashboardFilters } from "@/components/dashboard-filters";
 import { RANGES } from "@/lib/ranges";
+import { getSetupSteps, setupComplete } from "@/lib/setup-steps";
 import { PerformanceTable, type BreakdownRow } from "@/components/performance-table";
 
 export const metadata: Metadata = { title: "Overview" };
@@ -66,33 +67,25 @@ export default async function Overview({ params, searchParams }: PageProps<"/o/[
   );
 }
 
-/** Getting-started checklist; disappears once everything is done. */
+/** Getting-started checklist; disappears once the required steps are done. */
 async function Setup({ slug, orgId, canManage }: { slug: string; orgId: string; canManage: boolean }) {
   if (!canManage) return null;
-  const supabase = await createClient();
-  const [projects, members, meta, linked] = await Promise.all([
-    supabase.from("projects").select("id", { count: "exact", head: true }).eq("org_id", orgId),
-    supabase.from("memberships").select("user_id", { count: "exact", head: true }).eq("org_id", orgId),
-    supabase.from("integrations").select("id", { count: "exact", head: true }).eq("org_id", orgId).eq("kind", "meta").eq("status", "active"),
-    supabase.from("ad_accounts").select("id", { count: "exact", head: true }).eq("org_id", orgId).eq("sync_enabled", true).not("project_id", "is", null),
-  ]);
-  const steps = [
-    { done: (projects.count ?? 0) > 0, label: "Create your first project", href: `/o/${slug}/projects` },
-    { done: (meta.count ?? 0) > 0, label: "Connect Meta ads", href: `/o/${slug}/settings/meta` },
-    { done: (linked.count ?? 0) > 0, label: "Link an ad account to a project", href: `/o/${slug}/settings/meta` },
-    { done: (members.count ?? 0) > 1, label: "Invite your team", href: `/o/${slug}/team` },
-  ];
-  if (steps.every((s) => s.done)) return null;
+  const steps = await getSetupSteps(orgId, slug);
+  if (setupComplete(steps)) return null;
+  const done = steps.filter((s) => s.done).length;
   return (
-    <Card className="mb-6 p-5">
-      <h2 className="font-medium">Get set up</h2>
-      <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+    <Card className="mb-6 p-5" data-tour="setup">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-medium">Get set up <span className="text-sm font-normal text-fg-muted">· {done} of {steps.length} done</span></h2>
+        <Link href={`/o/${slug}/setup`} className="link text-sm">Open the setup guide</Link>
+      </div>
+      <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         {steps.map((s) => (
-          <li key={s.label}>
-            <Link href={s.href} className="flex h-full items-center gap-2 rounded-md border border-border px-3 py-2.5 text-sm hover:bg-surface-2">
+          <li key={s.id}>
+            <Link href={s.id === "project" && !s.done ? `/o/${slug}/setup` : s.href} className="flex h-full items-center gap-2 rounded-md border border-border px-3 py-2.5 text-sm hover:bg-surface-2">
               {s.done ? <CheckCircle2 className="size-4 shrink-0 text-success" aria-hidden /> : <Circle className="size-4 shrink-0 text-fg-subtle" aria-hidden />}
-              <span className={s.done ? "text-fg-muted line-through" : ""}>{s.label}</span>
-              <span className="sr-only">{s.done ? "(done)" : "(to do)"}</span>
+              <span className={s.done ? "text-fg-muted line-through" : ""}>{s.title}</span>
+              <span className="sr-only">{s.done ? "(done)" : s.optional ? "(optional)" : "(to do)"}</span>
             </Link>
           </li>
         ))}

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { atLeast, requireOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { LEGAL } from "@/lib/brand";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,10 @@ export default async function MetaSettingsPage({ params, searchParams }: PagePro
               <code className="font-mono text-xs">business_management</code>, then paste it here.
             </li>
           </ol>
+          <p className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <Link href="/help/connect-meta" className="link">Step-by-step guide with every click</Link>
+            <a href={`mailto:${LEGAL.email}?subject=${encodeURIComponent(`Setup help for ${ctx.org.name}`)}`} className="link">Or we&apos;ll set it up with you</a>
+          </p>
           <ActionForm action={connectMeta} slug={ctx.org.slug}>
             <Field label="Access token" htmlFor="meta-token" hint="Stored encrypted. Nobody, including you, can view it again after saving.">
               <Input id="meta-token" name="token" type="password" autoComplete="off" spellCheck={false} required aria-describedby="meta-token-hint" />

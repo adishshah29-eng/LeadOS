@@ -33,6 +33,7 @@ Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + 
 | WhatsApp bot per workspace: welcome template, button questions, scoring, AI answers from your facts, follow-ups, inbox with manual replies | ✅ (needs migration 0005 + a number) |
 | Trial expiry: workspace pauses (leads keep arriving, CSV export still works); admin can extend or set a plan | ✅ (needs migration 0006) |
 | Forgot password / reset by email | ✅ (Supabase's built-in email until Resend is set up) |
+| Onboarding: setup guide for new workspaces, first-visit product tour, help center with step-by-step guides, landing FAQ | ✅ (guides live in `src/lib/guides.ts`) |
 | Privacy policy, terms, data-deletion pages | ✅ (fill in `LEGAL` in `src/lib/brand.ts`) |
 | Billing (Razorpay) | ⏳ needs a Razorpay account |
 | Daily / weekly email reports | ⏳ needs a Resend account |

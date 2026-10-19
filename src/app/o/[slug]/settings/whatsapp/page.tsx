@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { atLeast, requireOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { BRAND } from "@/lib/brand";
+import { BRAND, LEGAL } from "@/lib/brand";
 import { settingsFromRow } from "@/server/bot/settings";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +69,10 @@ export default async function WhatsAppSettings({ params, searchParams }: PagePro
             <li>Generate a token for it with <code className="font-mono text-xs">whatsapp_business_messaging</code> and <code className="font-mono text-xs">whatsapp_business_management</code>, set to never expire.</li>
             <li>In WhatsApp Manager → Phone numbers, copy the <strong className="font-medium text-fg">Phone number ID</strong> (a long number, not the phone number).</li>
           </ol>
+          <p className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <Link href="/help/connect-whatsapp" className="link">Step-by-step guide with every click</Link>
+            <a href={`mailto:${LEGAL.email}?subject=${encodeURIComponent(`Setup help for ${ctx.org.name}`)}`} className="link">Or we&apos;ll set it up with you</a>
+          </p>
           <ActionForm action={connectWhatsApp} slug={ctx.org.slug}>
             <Field label="Phone number ID" htmlFor="wa-pnid">
               <Input id="wa-pnid" name="phone_number_id" inputMode="numeric" required />
@@ -130,7 +134,8 @@ export default async function WhatsAppSettings({ params, searchParams }: PagePro
           <p className="mt-1 mb-3 text-sm text-fg-muted">
             WhatsApp only lets a business start a chat with a template Meta has approved. Create these in WhatsApp Manager. Each takes{" "}
             <code className="font-mono text-xs">{"{{1}}"}</code> = first name and <code className="font-mono text-xs">{"{{2}}"}</code> = project. Give the welcome
-            quick-reply buttons such as &quot;Yes, let&apos;s start&quot;, &quot;Call me&quot; and &quot;Not interested&quot;.
+            quick-reply buttons such as &quot;Yes, let&apos;s start&quot;, &quot;Call me&quot; and &quot;Not interested&quot;.{" "}
+            <Link href="/help/whatsapp-templates" className="link">Ready-to-copy templates</Link>
           </p>
           <div className="grid gap-3 sm:grid-cols-4">
             <Field label="Welcome" htmlFor="t-welcome"><Input id="t-welcome" name="welcome" defaultValue={s.templates.welcome} required /></Field>

@@ -54,6 +54,11 @@ export function trialLapsed(org: { plan: string; trial_ends_at: string }, now = 
   return org.plan === "trial" && Date.parse(org.trial_ends_at) <= now;
 }
 
+/** Whole days left in the trial. Rounded, not ceil'd: seconds of clock skew must not show "15 days" on a 14-day trial. */
+export function trialDaysLeft(org: { trial_ends_at: string }, now = Date.now()) {
+  return Math.max(0, Math.round((Date.parse(org.trial_ends_at) - now) / 86_400_000));
+}
+
 /**
  * Resolves /o/[slug] to an org the user is a member of. A slug the user isn't
  * a member of is a 404 (not 403), so org names can't be probed.

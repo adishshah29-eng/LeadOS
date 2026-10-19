@@ -22,6 +22,7 @@ function Links({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => voi
             <Link
               href={href}
               onClick={onNavigate}
+              data-tour={key}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm transition-colors",

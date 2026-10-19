@@ -30,5 +30,6 @@ export async function createOrganization(_prev: CreateOrgState, form: FormData):
     const msg = error.code === "23505" ? "That address is taken. Try another." : error.message.includes("limit") ? "You've reached the limit of 5 workspaces." : "Couldn't create the workspace. Try again.";
     return { error: msg, ...raw };
   }
-  redirect(`/o/${parsed.data.slug}`);
+  // New workspaces start on the setup guide.
+  redirect(`/o/${parsed.data.slug}/setup`);
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, Lock } from "lucide-react";
 import { BRAND, LEGAL_LINKS } from "@/lib/brand";
+import { FAQ } from "@/lib/guides";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Meter } from "@/components/landing/meter";
@@ -20,7 +21,7 @@ const CATCHES = [
 ];
 
 const STEPS = [
-  { title: "Connect Meta", body: "Paste a System User token from Business Settings. It's stored encrypted and never shown again." },
+  { title: "Connect Meta", body: "About ten minutes with our step-by-step guide, or free on a call with us. Your access is stored encrypted." },
   { title: "Link ad accounts to projects", body: "One project per building, launch or client. Spend and leads roll up per project." },
   { title: "Open the overview every morning", body: "What's wasting, what's working, and which new leads to call, in one screen." },
 ];
@@ -44,6 +45,7 @@ export default function Home() {
           <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
             <a href="#how" className="hidden rounded-md px-3 py-2 text-sm font-medium hover:bg-ink/10 md:inline-block">How it works</a>
             <a href="#team" className="hidden rounded-md px-3 py-2 text-sm font-medium hover:bg-ink/10 md:inline-block">For teams</a>
+            <a href="#faq" className="hidden rounded-md px-3 py-2 text-sm font-medium hover:bg-ink/10 md:inline-block">FAQ</a>
             <Link href="/login" className="rounded-md px-3 py-2 text-sm font-medium hover:bg-ink/10">Sign in</Link>
             <Link href="/signup" className="rounded-md bg-ink px-3 py-2 text-sm font-semibold text-ink-fg hover:bg-ink/85">Start free trial</Link>
           </nav>
@@ -145,6 +147,29 @@ export default function Home() {
           </table>
         </section>
 
+        {/* --------------------------------------------------------- faq */}
+        <section id="faq" aria-labelledby="faq-title" className="mx-auto w-full max-w-6xl scroll-mt-6 px-4 pb-16 sm:px-6 sm:pb-24">
+          <h2 id="faq-title" className="font-display text-4xl leading-[0.95] font-extrabold [font-stretch:80%] sm:text-5xl">
+            Questions, answered.
+          </h2>
+          <div className="mt-10 divide-y divide-border border-y border-border">
+            {FAQ.map((f) => (
+              <details key={f.q} className="group py-5">
+                <summary className="cursor-pointer list-none text-lg font-semibold [&::-webkit-details-marker]:hidden">
+                  <span className="flex items-center justify-between gap-4">
+                    {f.q}
+                    <span aria-hidden className="text-2xl leading-none text-fg-subtle transition-transform group-open:rotate-45 motion-reduce:transition-none">+</span>
+                  </span>
+                </summary>
+                <p className="mt-2 max-w-3xl text-fg-muted">{f.a}</p>
+              </details>
+            ))}
+          </div>
+          <p className="mt-6 text-fg-muted">
+            More in the <Link href="/help" className="link">help center</Link>.
+          </p>
+        </section>
+
         {/* ------------------------------------------------------- close */}
         <section aria-labelledby="cta-title" className="bg-taxi text-ink">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-end lg:justify-between">
@@ -169,6 +194,7 @@ export default function Home() {
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-fg-subtle sm:px-6">
           <span className="flex items-center gap-2"><Logo className="size-5" /> © {new Date().getFullYear()} {BRAND.name}</span>
           <nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
+            <Link href="/help" className="hover:text-fg hover:underline">Help center</Link>
             {LEGAL_LINKS.map((l) => (
               <Link key={l.href} href={l.href} className="hover:text-fg hover:underline">{l.label}</Link>
             ))}

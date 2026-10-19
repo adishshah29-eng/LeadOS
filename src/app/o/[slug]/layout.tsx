@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { LogOut, Shield } from "lucide-react";
-import { atLeast, isPlatformAdmin, listMyOrgs, requireOrg } from "@/lib/auth";
+import { BookOpen, Compass, LifeBuoy, LogOut, Shield } from "lucide-react";
+import { BRAND, LEGAL } from "@/lib/brand";
+import { ProductTour, TourButton, type TourStep } from "@/components/product-tour";
+import { atLeast, isPlatformAdmin, listMyOrgs, requireOrg, trialDaysLeft } from "@/lib/auth";
 import { MobileNav, SideNav, type NavItem } from "@/components/app-nav";
 import { OrgSwitcher } from "@/components/org-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -12,6 +14,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[s
   const [ctx, orgs, platformRole] = await Promise.all([requireOrg(slug, { allowLapsed: true }), listMyOrgs(), isPlatformAdmin()]);
   const base = `/o/${ctx.org.slug}`;
 
+  const isAdminNav = atLeast(ctx.role, "admin");
   const items: NavItem[] = [
     { key: "overview", label: "Overview", href: base },
     // Viewers see dashboards only; lead PII is hidden from them by RLS anyway.
@@ -22,7 +25,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[s
         ]
       : []),
     { key: "projects", label: "Projects", href: `${base}/projects` },
-    ...(atLeast(ctx.role, "admin")
+    ...(isAdminNav
       ? [
           { key: "team" as const, label: "Team", href: `${base}/team` },
           { key: "settings" as const, label: "Settings", href: `${base}/settings` },
@@ -30,11 +33,46 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[s
       : []),
   ];
 
-  // Rounded, not ceil'd: a few seconds of clock skew with the database must not show "15 days" on a 14-day trial.
-  const trialDays = Math.max(0, Math.round((new Date(ctx.org.trial_ends_at).getTime() - Date.now()) / 86_400_000));
+  const trialDays = trialDaysLeft(ctx.org);
   const switcher = <OrgSwitcher current={ctx.org.slug} orgs={orgs} />;
+  const isAdmin = atLeast(ctx.role, "admin");
+  const tour: TourStep[] = [
+    { title: `Welcome to ${BRAND.name}`, body: "A 30-second look around. Use the arrow keys or Next; Esc closes it any time." },
+    { target: "overview", title: "Overview", body: "Spend, leads and cost per lead across your projects. Change the date range or pick one project at the top." },
+    ...(ctx.role !== "viewer"
+      ? [
+          { target: "leads", title: "Leads", body: "Every enquiry from your lead forms, the moment it arrives. Assign it, update its status, add notes, or download a list." },
+          { target: "conversations", title: "WhatsApp", body: "Chats the assistant is having with your leads. The ones that need a person are at the top; pause the bot and reply yourself." },
+        ]
+      : []),
+    { target: "projects", title: "Projects", body: "One per property, launch or client. Ad accounts and leads are grouped by project, and access can be limited per project." },
+    ...(isAdmin
+      ? [
+          { target: "team", title: "Team", body: "Invite agents, managers and clients. Each sees only what their role allows." },
+          { target: "settings", title: "Settings", body: "Connect Meta and WhatsApp, share read-only reports with clients, and see the activity log." },
+        ]
+      : []),
+    { target: "help", title: "Help is always here", body: isAdmin ? "Guides, this tour and support are always in the menu. Next, follow the setup steps to connect your ads." : "Guides, this tour and support are always in the menu." },
+  ];
+  const helpCls = "flex w-full cursor-pointer items-center gap-2 text-sm text-fg-muted hover:text-fg";
   const footer = (
     <div className="space-y-3 border-t border-border pt-3">
+      <div className="space-y-2" data-tour="help">
+        {isAdmin ? (
+          <Link href={`${base}/setup`} className={helpCls}>
+            <Compass className="size-4" aria-hidden /> Setup guide
+          </Link>
+        ) : null}
+        <Link href="/help" className={helpCls}>
+          <BookOpen className="size-4" aria-hidden /> Help &amp; guides
+        </Link>
+        <TourButton className={helpCls}>
+          <Compass className="size-4" aria-hidden /> Take the tour
+        </TourButton>
+        <a href={`mailto:${LEGAL.email}?subject=${encodeURIComponent(`Help with ${ctx.org.name}`)}`} className={helpCls}>
+          <LifeBuoy className="size-4" aria-hidden /> Contact support
+        </a>
+      </div>
       {platformRole ? (
         <Link href="/admin" className="flex items-center gap-2 text-sm text-fg-muted hover:text-fg">
           <Shield className="size-4" aria-hidden /> Platform admin
@@ -87,6 +125,7 @@ export default async function OrgLayout({ children, params }: LayoutProps<"/o/[s
         ) : null}
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-8 sm:py-8">{children}</main>
+        <ProductTour steps={tour} autoStart />
       </div>
     </div>
   );

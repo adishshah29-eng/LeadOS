@@ -44,7 +44,7 @@ export function CreateOrgForm() {
             id="slug"
             name="slug"
             required
-            pattern="[a-z0-9][a-z0-9-]{1,38}[a-z0-9]"
+            pattern="[a-z0-9][a-z0-9\-]{1,38}[a-z0-9]"
             value={slug}
             onChange={(e) => {
               setSlugEdited(true);
