@@ -17,7 +17,9 @@ export async function acceptInvite(_prev: { error?: string }, form: FormData): P
     return {
       error: error.message.includes("different email")
         ? "This invitation was sent to a different email. Sign in with that address."
-        : "This invitation is invalid, expired, or already used. Ask an admin for a new one.",
+        : error.message.includes("plan limit: seats")
+          ? "This workspace has reached its team size for its plan. Ask the owner to upgrade or make room."
+          : "This invitation is invalid, expired, or already used. Ask an admin for a new one.",
     };
   }
   redirect(`/o/${slug as string}`);

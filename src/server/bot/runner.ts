@@ -1,9 +1,10 @@
 import "server-only";
 import { adminDb } from "@/server/supabase-admin";
-import { nextFollowupAt, processMessage, shouldStopFollowups, type ConvPatch, type Conversation, type Inbound, type Outbound } from "./brain";
+import { nextFollowupAt, optOutPatch, processMessage, shouldStopFollowups, type ConvPatch, type Conversation, type Inbound, type Outbound } from "./brain";
 import { FOLLOWUPS, settingsFromRow, type BotSettings } from "./settings";
 import { isAuthSendError, isPermanentSendError, markRead, sendOutbound, sendTemplate, type SendResult, type WaNumber } from "./whatsapp";
 import { aiBudgetLeft, geminiClassifier } from "./llm";
+import { settingsForPlan } from "@/lib/plans";
 
 /**
  * Runs the bot for one workspace: loads its settings and number, applies the
@@ -32,7 +33,9 @@ export async function loadOrgBot(orgId: string): Promise<OrgBot> {
   ]);
   const o = org as { name: string; status: string; plan: string; trial_ends_at: string } | null;
   const i = integ as { external_id: string | null; status: string } | null;
-  const settings = settingsFromRow(row as Record<string, unknown> | null, o?.name ?? "");
+  const fromRow = settingsFromRow(row as Record<string, unknown> | null, o?.name ?? "");
+  // Plans without WhatsApp: the assistant acts as switched off; messages are still stored and flagged for a person.
+  const settings = settingsForPlan(fromRow, o?.plan ?? "");
   // Development dry-run (WA_DRY_RUN=1) needs no real token: nothing is actually sent.
   const dryRun = process.env.WA_DRY_RUN === "1" && process.env.NODE_ENV !== "production";
   const tok = (token as string | null) ?? (dryRun ? "dry-run" : null);
@@ -183,8 +186,15 @@ export async function handleInbound(orgId: string, m: InboundEvent): Promise<{ h
   const { data: row } = await db().from("wa_conversations").select("*").eq("id", target.id).single();
   const c = row as Conversation & { lead_id: string };
   if (!bot.number || !bot.settings.enabled) {
-    // Bot off: keep the message for people to answer from the inbox.
-    await saveConversation(orgId, c.id, c.lead_id, { last_inbound_at: new Date().toISOString(), last_message: describeIn(m), needs_attention: true, attention_reason: "New WhatsApp message" }, []);
+    // Bot off: keep the message for people to answer from the inbox. STOP is still honoured.
+    const optOut = c.state === "opted_out" ? null : optOutPatch(m);
+    await saveConversation(
+      orgId,
+      c.id,
+      c.lead_id,
+      { last_inbound_at: new Date().toISOString(), last_message: describeIn(m), needs_attention: true, attention_reason: optOut ? "Unsubscribed" : "New WhatsApp message", ...optOut?.patch },
+      optOut ? [{ text: optOut.note }] : [],
+    );
     return { handled: true, replies: 0 };
   }
 
@@ -246,6 +256,9 @@ export async function sendManual(orgId: string, conversationId: string, text: st
 export async function runFollowups(orgId: string): Promise<{ sent: number; stopped: number; failed: number }> {
   const bot = await loadOrgBot(orgId);
   const result = { sent: 0, stopped: 0, failed: 0 };
+  // Only workspaces that switched the assistant on reach here; "off" means the plan excludes it:
+  // clear pending follow-ups so they don't all fire at once after an upgrade.
+  if (bot.number && !bot.settings.enabled) await db().rpc("worker_pause_followups", { p_org: orgId });
   if (!bot.number || !bot.settings.enabled || bot.lapsed) return result;
 
   const { data } = await db()

@@ -17,6 +17,7 @@ import { atLeast, requireOrg, type OrgRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUSES, toE164 } from "@/lib/leads";
 import { nameMatches } from "@/lib/deletion";
+import { planLimitMessage } from "@/lib/plans";
 import { EV, inngest } from "@/server/jobs/client";
 
 export type ActionState = { error?: string; message?: string; link?: string; values?: Record<string, string> };
@@ -208,7 +209,7 @@ export async function inviteMember(_prev: ActionState, form: FormData): Promise<
     p_role: parsed.data.role,
     p_token_hash: tokenHash,
   });
-  if (error) return { error: "Couldn't create the invitation.", values: v };
+  if (error) return { error: planLimitMessage(error.message, ctx.org.plan) ?? "Couldn't create the invitation.", values: v };
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL || (await headers()).get("origin") || "";
   revalidatePath(`/o/${ctx.org.slug}/team`);
@@ -274,7 +275,9 @@ export async function createReportLink(_prev: ActionState, form: FormData): Prom
     created_by: ctx.userId,
     expires_at: new Date(Date.now() + parsed.data.expires * 86_400_000).toISOString(),
   });
-  if (error) return { error: error.code === "PGRST205" ? "Run migration 0004 first." : "Couldn't create the link.", values: v };
+  if (error) {
+    return { error: planLimitMessage(error.message, ctx.org.plan) ?? (error.code === "PGRST205" ? "Run migration 0004 first." : "Couldn't create the link."), values: v };
+  }
   await supabase.rpc("write_audit", { p_org: ctx.org.id, p_action: "report_link.created", p_target: parsed.data.label });
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL || (await headers()).get("origin") || "";

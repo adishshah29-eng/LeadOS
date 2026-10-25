@@ -1,3 +1,5 @@
+import { LIMITS, PLANS } from "./plans.ts";
+
 /**
  * Help-center guides, as data so pages, the setup checklist and settings can
  * link to them by slug. Meta changes its menus often: when a step drifts,
@@ -208,6 +210,11 @@ export const GUIDES: Guide[] = [
 export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug);
 
 export const FAQ: { q: string; a: string }[] = [
+  {
+    q: "What does each plan include?",
+    // Built from the same limits the app enforces (src/lib/plans.ts).
+    a: `${PLANS.map((p) => `${p.name}: ${p.points.join(", ")}`).join(". ")}. The free trial includes everything, with up to ${LIMITS.trial.adAccounts} ad accounts and ${LIMITS.trial.seats} team members.`,
+  },
   {
     q: "What do I need to get started?",
     a: "A Meta business portfolio that runs your ads, and admin access to it. WhatsApp is optional and needs a WhatsApp Business Platform number.",

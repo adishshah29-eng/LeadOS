@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { matchOption, nextQuestion, processMessage, scoreLead, shouldStopFollowups, type Conversation, type Inbound } from "./brain.ts";
+import { matchOption, nextQuestion, optOutPatch, processMessage, scoreLead, shouldStopFollowups, type Conversation, type Inbound } from "./brain.ts";
 import { DEFAULT_QUESTIONS, settingsFromRow } from "./settings.ts";
 
 const settings = settingsFromRow({ enabled: true, business_name: "Test Realty" }, "Test Realty");
@@ -184,4 +184,18 @@ test("follow-ups stop once the CRM status moves on or after 3 ignored", () => {
   assert.equal(shouldStopFollowups(conv(), "site_visit"), true);
   assert.equal(shouldStopFollowups(conv({ unanswered_followups: 3 }), "new"), true);
   assert.equal(shouldStopFollowups(conv(), "contacted"), false);
+});
+
+test("F8: STOP is honoured even when the assistant is off: opted out, follow-ups cleared, no message sent", () => {
+  for (const text of ["STOP", " stop ", "Unsubscribe", "stop messages"]) {
+    const r = optOutPatch({ type: "text", text, messageId: "m1" } as Inbound);
+    assert.ok(r, text);
+    assert.equal(r.patch.state, "opted_out");
+    assert.equal(r.patch.next_followup_at, null);
+    assert.match(r.note, /nsubscribed/);
+  }
+  for (const text of ["hello", "I want to stop by tomorrow", "start"]) {
+    assert.equal(optOutPatch({ type: "text", text, messageId: "m2" } as Inbound), null, text);
+  }
+  assert.equal(optOutPatch({ type: "image", messageId: "m3" } as Inbound), null);
 });

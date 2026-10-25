@@ -11,6 +11,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { ActionForm, SubmitButton } from "@/components/action-form";
 import { createReportLink, renameOrg, revokeReportLink } from "../actions";
 import { DangerZone } from "@/components/danger-zone";
+import { UsageCard } from "@/components/usage-card";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -56,6 +57,8 @@ export default async function SettingsPage({ params }: PageProps<"/o/[slug]/sett
           <SubmitButton pendingLabel="Saving…" size="sm">Save</SubmitButton>
         </ActionForm>
       </Card>
+
+      <UsageCard orgId={ctx.org.id} plan={ctx.org.plan} />
 
       <h2 className="mb-3 font-medium">Integrations</h2>
       <div className="mb-6 grid gap-3 md:grid-cols-2">

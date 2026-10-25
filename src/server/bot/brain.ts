@@ -280,6 +280,17 @@ function scheduleAfterReply(c: Conversation, P: ConvPatch, now: number) {
 }
 
 /** Handles one inbound message. Pure apart from the optional AI classifier. */
+/**
+ * STOP and similar, honoured even when the assistant is off (switched off or
+ * not on the plan): the lead is opted out and follow-ups stop. Nothing is
+ * sent. Null when the message isn't an opt-out.
+ */
+export function optOutPatch(m: Inbound): { patch: ConvPatch; note: string } | null {
+  if (m.type !== "text" || !m.text) return null;
+  if (!OPT_OUT_WORDS.has(norm(sanitizeInput(m.text)))) return null;
+  return { patch: { state: "opted_out", next_followup_at: null }, note: "Unsubscribed from WhatsApp messages" };
+}
+
 export async function processMessage(
   c: Conversation,
   m: Inbound,

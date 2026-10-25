@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { discover, MetaApiError, MetaAuthError } from "@/server/meta/graph";
 import { EV, inngest } from "@/server/jobs/client";
 import type { ActionState } from "../../actions";
+import { disablesFirst, planLimitMessage } from "@/lib/plans";
 
 const slugSchema = z.string().regex(/^[a-z0-9-]{3,40}$/);
 
@@ -104,8 +105,8 @@ export async function saveMetaSetup(_prev: ActionState, form: FormData): Promise
       sync_enabled: chosenAccounts.has(a.id),
     }));
   if (accountRows.length) {
-    const { error } = await supabase.from("ad_accounts").upsert(accountRows, { onConflict: "org_id,meta_account_id" });
-    if (error) return { error: `Couldn't save ad accounts: ${error.message}` };
+    const { error } = await supabase.from("ad_accounts").upsert(disablesFirst(accountRows), { onConflict: "org_id,meta_account_id" });
+    if (error) return { error: planLimitMessage(error.message, ctx.org.plan) ?? `Couldn't save ad accounts: ${error.message}` };
   }
 
   const { data: existingPages } = await supabase.from("meta_pages").select("page_id").eq("org_id", ctx.org.id);

@@ -52,7 +52,7 @@ Last updated: 2026-10-24
 - [ ] **Run SQL to remove the two orphaned Vault secrets** in the dev database:
   `delete from vault.secrets where id in ('cd176aaa-b468-42a3-824d-f6b34508e21e','7a9bb5d9-73db-4c2b-ab8d-06baa41ae42a');`
 - [ ] **Run migration `0006_billing_guard.sql`** in the dev database if you haven't. Until then, workspace admins can change their own plan.
-- [ ] **Production database:** run every migration in order, including `0007_self_serve_deletion.sql` and `0008_deletion_hardening.sql` (done in dev).
+- [ ] **Production database:** run every migration in order, through `0010_plan_limits_hardening.sql` (all done in dev).
 
 ## 5. WhatsApp
 

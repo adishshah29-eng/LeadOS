@@ -6,6 +6,7 @@ import { atLeast, requireOrg } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { BRAND, LEGAL } from "@/lib/brand";
 import { settingsFromRow } from "@/server/bot/settings";
+import { planIncludesAssistant } from "@/lib/plans";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,8 @@ export default async function WhatsAppSettings({ params, searchParams }: PagePro
   ]);
   const connected = integ?.status === "active";
   const s = settingsFromRow(row as Record<string, unknown> | null, ctx.org.name);
+  // After a downgrade the saved switch may say "on", but the assistant runs only on plans that include it.
+  const onPlan = planIncludesAssistant(ctx.org.plan);
   const link = (integ?.available ?? {}) as { waba_id?: string | null; subscribed_at?: string | null; subscribe_error?: string | null };
 
   return (
@@ -41,7 +44,11 @@ export default async function WhatsAppSettings({ params, searchParams }: PagePro
       <PageHeader
         title="WhatsApp lead bot"
         description={connected ? `Connected: ${integ?.display_name}` : "Reply to every new lead on WhatsApp within seconds, qualify them with buttons, and follow up automatically."}
-        actions={connected ? <Badge tone={s.enabled ? "success" : "neutral"}>{s.enabled ? "Bot on" : "Bot off"}</Badge> : undefined}
+        actions={
+          connected ? (
+            !onPlan ? <Badge tone="warning">Not on your plan</Badge> : <Badge tone={s.enabled ? "success" : "neutral"}>{s.enabled ? "Bot on" : "Bot off"}</Badge>
+          ) : undefined
+        }
       />
 
       {process.env.WA_DRY_RUN === "1" && process.env.NODE_ENV !== "production" ? (
@@ -113,12 +120,15 @@ export default async function WhatsAppSettings({ params, searchParams }: PagePro
         <Card className="p-5">
           <h2 className="font-medium">Bot</h2>
           <label className="mt-3 flex cursor-pointer items-start gap-3">
-            <input type="checkbox" name="enabled" defaultChecked={s.enabled} disabled={!connected} className="mt-1 size-4 accent-[var(--fg)]" />
+            <input type="checkbox" name="enabled" defaultChecked={s.enabled && onPlan} disabled={!connected || !onPlan} className="mt-1 size-4 accent-[var(--fg)]" />
+            {/* Keep the saved choice while the plan excludes the assistant, so it comes back on after an upgrade. */}
+            {!onPlan && s.enabled ? <input type="hidden" name="enabled" value="on" /> : null}
             <span>
               <span className="block text-sm font-medium">Message new leads automatically</span>
               <span className="block text-xs text-fg-subtle">
                 Only leads that arrive after you switch this on, and within 24 hours. Existing leads are never messaged.
                 {!connected ? " Connect a number first." : ""}
+                {connected && !onPlan ? " Your plan doesn't include the assistant: messages still arrive in the inbox, and STOP is always honoured. Upgrade to Growth or Agency to switch it on." : ""}
               </span>
             </span>
           </label>

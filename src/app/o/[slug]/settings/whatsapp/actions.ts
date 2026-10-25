@@ -10,6 +10,7 @@ import { describeNumber, linkWaba } from "@/server/bot/whatsapp";
 import { EV, inngest } from "@/server/jobs/client";
 import { DEFAULT_QUESTIONS, settingsFromRow, type Question } from "@/server/bot/settings";
 import type { ActionState } from "../../actions";
+import { planLimitMessage } from "@/lib/plans";
 
 const slugSchema = z.string().regex(/^[a-z0-9-]{3,40}$/);
 
@@ -60,11 +61,12 @@ export async function connectWhatsApp(_prev: ActionState, form: FormData): Promi
   if (error) {
     return {
       error:
-        error.code === "PGRST202"
+        planLimitMessage(error.message, ctx.org.plan) ??
+        (error.code === "PGRST202"
           ? "Run supabase/migrations/0005_whatsapp_bot.sql first."
           : error.code === "23505"
             ? "This number is already connected to another workspace."
-            : "Couldn't save the connection.",
+            : "Couldn't save the connection."),
     };
   }
   revalidatePath(`/o/${ctx.org.slug}/settings`, "layout");
