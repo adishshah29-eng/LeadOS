@@ -131,6 +131,28 @@ select id, 'super_admin' from auth.users where email = 'you@example.com';
 
 A "Platform admin" link then appears in the sidebar (`/admin`).
 
+## Production
+
+A production build (`next build`) fails, and a production server refuses to start, if a required setting is
+missing or a dev-only switch is on; the error names the setting, never its value. So `next build` on a dev
+machine with `.env.local` fails on purpose: build for production on the host. Set these in the host's environment:
+
+| Variable | Notes |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Production Supabase project |
+| `SUPABASE_SECRET_KEY` | Required. Server only |
+| `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN` | Required |
+| `NEXT_PUBLIC_SITE_URL` | Required: only the domain, e.g. `https://leados.in` (links, sitemap). Set before the build |
+| `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` | Required. From Inngest Cloud |
+| `GEMINI_API_KEY` | Optional |
+| `WA_DRY_RUN`, `INNGEST_DEV` | Must **not** be set (any value other than `0`/`false` blocks the build) |
+
+- `GET /api/health` returns `200 {"ok":true}` when the database answers and `503 {"ok":false}` otherwise. Point an
+  uptime monitor at it.
+- `/robots.txt` and `/sitemap.xml` are generated from `src/lib/seo.ts`.
+- **CI:** `.github/workflows/ci.yml` runs type-check, lint and unit tests on every push. To block merging while it
+  is red: GitHub → Settings → Branches → add a rule for `main` → *Require status checks to pass* → pick `check`.
+
 ## Security model
 
 - **Row-Level Security is the boundary.** The web app only ever uses the publishable key plus the signed-in user's session. It never holds the service-role key. Every table has `org_id` and RLS.
@@ -176,7 +198,9 @@ supabase/migrations/   SQL, run in order
 ## Tests
 
 ```bash
-npm test
+npm test            # unit tests (also run by CI)
+npm run typecheck   # generates route types, then tsc
+npm run test:int    # integration tests against the running app: start `npm run dev` first
 ```
 
 Unit tests (Node's built-in runner) cover the WhatsApp bot's decisions, the AI reply guard, phone number

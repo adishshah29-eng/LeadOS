@@ -1,11 +1,12 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import { extraHeaders } from "./src/lib/security-headers";
+import { checkBuild } from "./src/lib/env";
 
 // Baseline security headers on every response. The page CSP (with a
 // per-request script nonce) is set in src/lib/supabase/proxy.ts; this one
 // covers API responses and anything the proxy skips.
 const securityHeaders = [
-  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
@@ -16,8 +17,13 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   turbopack: { root: path.resolve(__dirname) },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    const hsts = Object.entries(extraHeaders(process.env.NODE_ENV !== "production")).map(([key, value]) => ({ key, value }));
+    return [{ source: "/:path*", headers: [...securityHeaders, ...hsts] }];
   },
 };
 
-export default nextConfig;
+export default function config(phase: string): NextConfig {
+  // A production build with missing secrets or dev switches fails here instead of deploying.
+  checkBuild(phase, process.env);
+  return nextConfig;
+}

@@ -7,8 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
     "inngest:dev": "npx --yes inngest-cli@1.45.0 dev -u http://localhost:3000/api/inngest --no-discovery",
-    "test": "node --experimental-strip-types --no-warnings --test \"src/**/*.test.ts\""
+    "test": "node --experimental-strip-types --no-warnings --test \"src/**/*.test.ts\"",
+    "test:int": "node --experimental-strip-types --no-warnings --test \"tests/integration/*.test.ts\""
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
