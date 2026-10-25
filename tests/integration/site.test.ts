@@ -46,3 +46,11 @@ test("I6: only /api/health itself skips the sign-in check, not look-alikes", asy
     assert.match(res.headers.get("location") ?? "", /\/login/, path);
   }
 });
+
+test("I7: /data-deletion explains the self-serve steps", async () => {
+  const res = await get("/data-deletion");
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /Danger zone/);
+  assert.match(html, /Delete my account/);
+});

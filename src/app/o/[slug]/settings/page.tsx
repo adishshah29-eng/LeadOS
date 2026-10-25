@@ -10,6 +10,7 @@ import { Button, buttonClass } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { ActionForm, SubmitButton } from "@/components/action-form";
 import { createReportLink, renameOrg, revokeReportLink } from "../actions";
+import { DangerZone } from "@/components/danger-zone";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -126,7 +127,7 @@ export default async function SettingsPage({ params }: PageProps<"/o/[slug]/sett
         ) : null}
       </Card>
 
-      <Card>
+      <Card className="mb-6">
         <h2 className="border-b border-border px-5 py-3 text-sm font-medium">Activity log</h2>
         {audit?.length ? (
           <ul className="divide-y divide-border text-sm">
@@ -145,6 +146,8 @@ export default async function SettingsPage({ params }: PageProps<"/o/[slug]/sett
           <p className="px-5 py-6 text-sm text-fg-muted">No activity yet.</p>
         )}
       </Card>
+
+      {ctx.role === "owner" ? <DangerZone slug={ctx.org.slug} name={ctx.org.name} /> : null}
     </>
   );
 }

@@ -7,6 +7,7 @@ import { BRAND, LEGAL } from "@/lib/brand";
 import { PLANS } from "@/lib/plans";
 import { formatINR, formatNum } from "@/lib/utils";
 import { Card, PageHeader } from "@/components/ui/card";
+import { DangerZone } from "@/components/danger-zone";
 import { buttonClass } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Trial ended", robots: { index: false } };
@@ -78,6 +79,12 @@ export default async function TrialEndedPage({ params }: PageProps<"/o/[slug]/tr
           <p>Ask your workspace owner to pick a plan. Nothing is lost in the meantime.</p>
         )}
       </Card>
+
+      {ctx.role === "owner" ? (
+        <div className="mt-6">
+          <DangerZone slug={ctx.org.slug} name={ctx.org.name} />
+        </div>
+      ) : null}
     </>
   );
 }

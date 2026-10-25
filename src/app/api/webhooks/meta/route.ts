@@ -92,7 +92,11 @@ async function handleWhatsApp(body: Body) {
   const { data: ints } = await db.from("integrations").select("external_id, org_id").eq("kind", "whatsapp").eq("status", "active").in("external_id", numberIds);
   const orgByNumber = new Map(((ints ?? []) as { external_id: string; org_id: string }[]).map((i) => [i.external_id, i.org_id]));
 
-  const rows = inbound.map((i) => ({ kind: "wa.message", dedupe_key: i.event.messageId, org_id: orgByNumber.get(i.phoneNumberId) ?? null, payload: i.event }));
+  // A number no workspace owns (e.g. one whose workspace was deleted): acknowledge, keep nothing.
+  const rows = inbound
+    .filter((i) => orgByNumber.has(i.phoneNumberId))
+    .map((i) => ({ kind: "wa.message", dedupe_key: i.event.messageId, org_id: orgByNumber.get(i.phoneNumberId)!, payload: i.event }));
+  if (!rows.length) return NextResponse.json({ ok: true, stored: 0 });
   const { data: stored, error } = await db.from("webhook_events").upsert(rows as never, { onConflict: "kind,dedupe_key", ignoreDuplicates: true }).select("id, org_id, payload");
   if (error) {
     console.error("[webhook] could not store WhatsApp messages", error.message);
@@ -141,12 +145,14 @@ export async function POST(req: NextRequest) {
   const { data: pages } = await db.from("meta_pages").select("page_id, org_id").in("page_id", pageIds);
   const orgByPage = new Map(((pages ?? []) as { page_id: string; org_id: string }[]).map((p) => [p.page_id, p.org_id]));
 
-  const rows = leads.map((l) => ({
+  // A Page no workspace owns: acknowledge, keep nothing.
+  const rows = leads.filter((l) => orgByPage.has(l.page_id!)).map((l) => ({
     kind: "meta.leadgen",
     dedupe_key: l.leadgen_id!,
-    org_id: orgByPage.get(l.page_id!) ?? null,
+    org_id: orgByPage.get(l.page_id!)!,
     payload: { leadgen_id: l.leadgen_id, page_id: l.page_id, form_id: l.form_id, ad_id: l.ad_id, created_time: l.created_time },
   }));
+  if (!rows.length) return NextResponse.json({ ok: true, stored: 0 });
   // Duplicates (Meta retries) hit the unique (kind, dedupe_key) and are skipped.
   const { data: stored, error } = await db
     .from("webhook_events")

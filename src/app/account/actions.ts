@@ -6,6 +6,10 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/utils";
+import { requireEnv } from "@/lib/env";
+import { emailMatches } from "@/lib/deletion";
+import { passwordIsValid } from "@/lib/verify-password";
+import { deleteUserAccount } from "@/server/account";
 
 export type AccountState = { error?: string; message?: string };
 
@@ -91,4 +95,42 @@ export async function verifyLoginCode(_prev: AccountState, form: FormData): Prom
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
   if (error) return { error: "That code didn't match. Try the current one." };
   redirect(safeNext(form.get("next")));
+}
+
+/**
+ * Permanently deletes the signed-in user's account. Needs their email typed,
+ * their password re-entered and, if they use two-factor login, a session that
+ * passed it. Only then is the server-only delete called. The database refuses
+ * while they own a workspace that has other members or is suspended, and
+ * deletes workspaces they own alone.
+ */
+export async function deleteAccount(_prev: AccountState, form: FormData): Promise<AccountState> {
+  const user = await requireUser();
+  if (!emailMatches(String(form.get("confirm_email") ?? ""), user.email)) return { error: "Type your email address exactly as shown." };
+  const env = requireEnv();
+  const ok = await passwordIsValid(user.email, String(form.get("password") ?? ""), user.id, {
+    url: env.NEXT_PUBLIC_SUPABASE_URL,
+    key: env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  });
+  if (!ok) return { error: "That password is incorrect." };
+
+  const supabase = await createClient();
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") return { error: "Sign out and back in with your two-factor code, then try again." };
+
+  const error = await deleteUserAccount(user.id);
+  if (error) {
+    const owned = /owns workspace with members: (.+)/.exec(error.message)?.[1];
+    const suspended = /owns suspended workspace: ([^;]+)/.exec(error.message)?.[1];
+    return {
+      error: owned
+        ? `You own "${owned}", which has other members. Remove them or delete that workspace first.`
+        : suspended
+          ? `"${suspended}" is suspended, so it can't be deleted. Contact support.`
+          : "Couldn't delete your account. Nothing was removed.",
+    };
+  }
+  // The user no longer exists; clear this browser's cookies.
+  await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  redirect("/?account=deleted");
 }

@@ -21,8 +21,12 @@ export default function DataDeletionPage() {
           email. We erase the lead, their WhatsApp messages and their history.
         </li>
         <li>
-          <strong>Delete the whole workspace:</strong> the owner emails {LEGAL.email}{" "}from the owner&apos;s address. We confirm, then erase the workspace
-          within 30 days, and from backups within a further 30 days.
+          <strong>Delete the whole workspace:</strong> the owner opens Settings → Danger zone, types the workspace name and confirms. Everything in it
+          is deleted at once, including saved Meta and WhatsApp connections, and is erased from backups within 30 days.
+        </li>
+        <li>
+          <strong>Delete your own account:</strong> Account → Delete my account, with your email and password. Workspaces only you are in are
+          deleted with it. If you own a workspace that has other members, remove them or delete that workspace first.
         </li>
       </ol>
 

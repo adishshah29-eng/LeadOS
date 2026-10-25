@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AccountForm } from "./account-form";
-import { changePassword, removeTwoFactor, updateProfile } from "./actions";
+import { changePassword, deleteAccount, removeTwoFactor, updateProfile } from "./actions";
 import { TwoFactorSetup } from "./two-factor";
 
 export const metadata: Metadata = { title: "Your account" };
@@ -17,10 +17,20 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
   const sp = await searchParams;
   const user = await requireUser();
   const supabase = await createClient();
-  const [{ data: profile }, { data: factors }] = await Promise.all([
+  const [{ data: profile }, { data: factors }, { data: owned }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle(),
     supabase.auth.mfa.listFactors(),
+    supabase.from("memberships").select("org_id, organizations!inner(name)").eq("user_id", user.id).eq("role", "owner"),
   ]);
+  // Workspaces this user owns, split by whether anyone else is in them.
+  const ownedIds = (owned ?? []).map((m) => m.org_id as string);
+  const { data: others } = ownedIds.length
+    ? await supabase.from("memberships").select("org_id").in("org_id", ownedIds).neq("user_id", user.id)
+    : { data: [] };
+  const shared = new Set((others ?? []).map((m) => m.org_id as string));
+  const ownedNames = (owned ?? []).map((m) => ({ id: m.org_id as string, name: (m.organizations as unknown as { name: string }).name }));
+  const blocking = ownedNames.filter((o) => shared.has(o.id));
+  const solo = ownedNames.filter((o) => !shared.has(o.id));
   const totp = factors?.totp?.[0];
 
   return (
@@ -82,12 +92,40 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
         </AccountForm>
       </Card>
 
-      <Card className="flex items-center justify-between gap-3 p-5">
+      <Card className="mb-6 flex items-center justify-between gap-3 p-5">
         <div>
           <h2 className="font-medium">Appearance</h2>
           <p className="text-sm text-fg-muted">Saved on this device.</p>
         </div>
         <ThemeToggle />
+      </Card>
+
+      <Card className="border-danger p-5">
+        <h2 className="font-medium text-danger">Delete my account</h2>
+        {blocking.length ? (
+          <p className="mt-1 text-sm text-fg-muted">
+            You own {blocking.map((o) => `"${o.name}"`).join(", ")}, which {blocking.length === 1 ? "has" : "have"} other members. Remove them, or delete
+            {blocking.length === 1 ? " that workspace" : " those workspaces"} in its Settings, before deleting your account.
+          </p>
+        ) : (
+          <>
+            <p className="mt-1 mb-4 text-sm text-fg-muted">
+              Permanently deletes your login and removes you from every workspace.
+              {solo.length ? ` These workspaces, which only you are in, are deleted with all their data: ${solo.map((o) => `"${o.name}"`).join(", ")}.` : ""}{" "}
+              It can&apos;t be undone.
+            </p>
+            <div className="max-w-md">
+              <AccountForm action={deleteAccount} submitLabel="Delete my account" danger>
+                <Field label={`Type your email (${user.email}) to confirm`} htmlFor="confirm-email">
+                  <Input id="confirm-email" name="confirm_email" type="email" autoComplete="off" required />
+                </Field>
+                <Field label="Your password" htmlFor="delete-password">
+                  <Input id="delete-password" name="password" type="password" autoComplete="current-password" required />
+                </Field>
+              </AccountForm>
+            </div>
+          </>
+        )}
       </Card>
     </main>
   );

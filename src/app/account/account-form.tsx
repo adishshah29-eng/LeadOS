@@ -11,11 +11,13 @@ export function AccountForm({
   children,
   submitLabel = "Save",
   resetOnSuccess = false,
+  danger = false,
 }: {
   action: (prev: AccountState, form: FormData) => Promise<AccountState>;
   children: React.ReactNode;
   submitLabel?: string;
   resetOnSuccess?: boolean;
+  danger?: boolean;
 }) {
   const [state, run, pending] = useActionState(action, {});
   const ref = useRef<HTMLFormElement>(null);
@@ -34,7 +36,7 @@ export function AccountForm({
     >
       <FormMessage error={state.error} message={state.message} />
       {children}
-      <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving…" : submitLabel}</Button>
+      <Button type="submit" size="sm" variant={danger ? "danger" : "primary"} disabled={pending}>{pending ? "Working…" : submitLabel}</Button>
     </form>
   );
 }

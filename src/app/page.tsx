@@ -33,7 +33,8 @@ const ROLES = [
   { role: "Client", sees: "A read-only dashboard for their project. No phone numbers" },
 ];
 
-export default function Home() {
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const accountDeleted = (await searchParams).account === "deleted";
   return (
     <div className={`${display.variable} flex min-h-dvh flex-col`}>
       {/* ------------------------------------------------ first viewport */}
@@ -74,6 +75,11 @@ export default function Home() {
         </section>
       </div>
 
+      {accountDeleted ? (
+        <p role="status" className="bg-success-soft px-4 py-3 text-center text-sm text-success">
+          Your account has been deleted. Thank you for trying {BRAND.name}.
+        </p>
+      ) : null}
       <main className="flex-1">
         {/* ---------------------------------------------- what it catches */}
         <section aria-labelledby="catch-title" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24">

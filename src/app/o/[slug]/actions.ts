@@ -12,9 +12,11 @@ import crypto from "node:crypto";
 import { z } from "zod";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { atLeast, requireOrg, type OrgRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUSES, toE164 } from "@/lib/leads";
+import { nameMatches } from "@/lib/deletion";
 import { EV, inngest } from "@/server/jobs/client";
 
 export type ActionState = { error?: string; message?: string; link?: string; values?: Record<string, string> };
@@ -290,6 +292,34 @@ export async function revokeReportLink(form: FormData): Promise<void> {
 }
 
 // ---------------------------------------------------------------- settings
+
+/**
+ * Owner only: permanently deletes the workspace and everything in it. The
+ * database re-checks ownership, the typed name and two-factor login.
+ * Allowed even when the trial has lapsed: deleting your data is always possible.
+ */
+export async function deleteWorkspace(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const v = values(form, ["confirm_name"]);
+  const ctx = await requireOrg(slugSchema.parse(form.get("slug")), { allowLapsed: true });
+  if (ctx.role !== "owner") return { error: "Only the workspace owner can delete it.", values: v };
+  if (!nameMatches(v.confirm_name, ctx.org.name)) return { error: "Type the workspace name exactly as shown.", values: v };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_organization", { p_org: ctx.org.id, p_confirm_name: v.confirm_name.trim() });
+  if (error) {
+    return {
+      error: /two-factor/.test(error.message)
+        ? "Sign out and back in with your two-factor code, then try again."
+        : /suspended/.test(error.message)
+          ? "This workspace is suspended, so it can't be deleted. Contact support."
+          : error.code === "PGRST202"
+            ? "Run supabase/migrations/0007_self_serve_deletion.sql first."
+            : "Couldn't delete the workspace. Nothing was removed.",
+      values: v,
+    };
+  }
+  revalidatePath("/", "layout");
+  redirect("/app");
+}
 
 export async function renameOrg(_prev: ActionState, form: FormData): Promise<ActionState> {
   const v = values(form, ["name"]);
