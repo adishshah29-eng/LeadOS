@@ -54,3 +54,21 @@ test("I7: /data-deletion explains the self-serve steps", async () => {
   assert.match(html, /Danger zone/);
   assert.match(html, /Delete my account/);
 });
+
+test("I9 + I10: report links allow 300 opens a minute per address; the next is told to wait; other addresses aren't affected", async () => {
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
+  const ip = `203.0.113.${Math.floor(Math.random() * 250) + 1}`; // a documentation-range address, unique per run
+  const other = `198.51.100.${Math.floor(Math.random() * 250) + 1}`;
+  const open = (from: string) => fetch(`${BASE}/r/${"x".repeat(43)}`, { headers: { "x-forwarded-for": from } }).then((r) => r.text());
+  try {
+    // 300 page loads take minutes here, longer than the 1-minute window; start the count at 299 instead.
+    const { error } = await admin.from("rate_limits").insert({ key: `report:ip:${ip}`, count: 299, window_start: new Date().toISOString(), window_seconds: 60 });
+    assert.equal(error, null, error?.message);
+    assert.match(await open(ip), /isn.t available/, "the 300th open was refused");
+    assert.match(await open(ip), /Too many requests/);
+    assert.match(await open(other), /isn.t available/); // I10
+  } finally {
+    await admin.from("rate_limits").delete().in("key", [`report:ip:${ip}`, `report:ip:${other}`]);
+  }
+});

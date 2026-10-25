@@ -36,6 +36,8 @@ Last updated: 2026-10-24
   - callback `https://<domain>/api/webhooks/meta` with your verify token;
   - subscribe Page → `leadgen` and WhatsApp → `messages`.
 - [ ] **Do not set** `WA_DRY_RUN` or `INNGEST_DEV` in production.
+- [ ] **Supabase → Authentication → Rate Limits:** tighten sign-in, sign-up and verification limits per address. LeadOS's own limits protect its forms, but anyone can call Supabase's sign-in directly with the public key.
+- [ ] **CAPTCHA:** create a free Cloudflare Turnstile site key, turn on CAPTCHA in Supabase → Authentication → Bot and Abuse Protection, then ask me to add the widget to the sign-in, sign-up and reset forms.
 - [ ] **Set every production variable *before* the first build** (the README lists them). A production build now fails, naming what's missing, rather than deploying a broken app.
 - [ ] **GitHub → Settings → Branches → rule for `main`:** require the `check` status, so red code can't merge.
 
@@ -52,7 +54,7 @@ Last updated: 2026-10-24
 - [ ] **Run SQL to remove the two orphaned Vault secrets** in the dev database:
   `delete from vault.secrets where id in ('cd176aaa-b468-42a3-824d-f6b34508e21e','7a9bb5d9-73db-4c2b-ab8d-06baa41ae42a');`
 - [ ] **Run migration `0006_billing_guard.sql`** in the dev database if you haven't. Until then, workspace admins can change their own plan.
-- [ ] **Production database:** run every migration in order, through `0010_plan_limits_hardening.sql` (all done in dev).
+- [ ] **Production database:** run every migration in order, through `0012_rate_limit_cleanup.sql` (all done in dev).
 
 ## 5. WhatsApp
 
@@ -78,3 +80,5 @@ Last updated: 2026-10-24
 - On workspace deletion, also unsubscribe its Facebook Pages and WhatsApp account at Meta (best effort, before erasing the token). Needs real Meta tokens to test.
 - After an account is deleted, other open browser tabs keep working (with failed loads) for up to an hour, until their sign-in token expires. Could send them to /login instead.
 - Integration test D3 failed once in seven full runs and couldn't be reproduced; watch for it.
+- Rate limits trust Vercel's x-forwarded-for. Off Vercel, a client sending a junk address header is treated as "unknown", and address-only limits (report links, sign-up) are skipped for it. Per-email limits still apply. Revisit if hosting moves off Vercel.
+- Rate limits use fixed windows, so up to twice a limit can get through right at a window boundary (accepted trade-off).

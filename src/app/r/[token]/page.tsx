@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card";
 import { TrendChart } from "@/components/trend-chart";
 import { PerformanceTable, type BreakdownRow } from "@/components/performance-table";
 import { cn } from "@/lib/utils";
+import { formatWait } from "@/lib/rate-limit";
+import { LIMIT_RULES, limitWait, requestIp } from "@/server/rate-limit";
 
 // The link's secret is in the URL path: never index it, never send it on as a referrer.
 export const metadata: Metadata = { title: "Ad report", robots: { index: false, follow: false }, referrer: "no-referrer" };
@@ -38,6 +40,19 @@ export default async function SharedReport({ params, searchParams }: PageProps<"
   const { token } = await params;
   const sp = await searchParams;
   const days = [7, 30, 90].includes(Number(sp.days)) ? Number(sp.days) : 30;
+
+  // Counted before the token is checked, so guessing links is slowed too.
+  const wait = await limitWait(LIMIT_RULES.reportLink(await requestIp()));
+  if (wait) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16">
+        <Card className="p-6">
+          <h1 className="text-lg font-semibold">Too many requests</h1>
+          <p className="mt-2 text-sm text-fg-muted">Please try again in {formatWait(wait)}.</p>
+        </Card>
+      </main>
+    );
+  }
 
   let report: Report | null = null;
   if (/^[A-Za-z0-9_-]{40,60}$/.test(token)) {

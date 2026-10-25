@@ -422,4 +422,15 @@ export const sweepWebhooks = inngest.createFunction(
   },
 );
 
-export const functions = [adsSync, leadsSync, leadReceived, pageSubscribe, rollupsRebuild, scheduleSyncs, sweepWebhooks];
+/** Removes rate-limit counters whose window has ended (kept off user requests). */
+export const pruneRateLimits = inngest.createFunction(
+  { id: "rate-limits-prune", triggers: [{ cron: "17 * * * *" }] },
+  async ({ step }) =>
+    step.run("prune", async () => {
+      const { data, error } = await adminDb().rpc("rate_limit_prune");
+      if (error) throw new Error(error.message);
+      return { removed: data as number };
+    }),
+);
+
+export const functions = [adsSync, leadsSync, leadReceived, pageSubscribe, rollupsRebuild, scheduleSyncs, sweepWebhooks, pruneRateLimits];

@@ -10,6 +10,8 @@ import { requireEnv } from "@/lib/env";
 import { emailMatches } from "@/lib/deletion";
 import { passwordIsValid } from "@/lib/verify-password";
 import { deleteUserAccount } from "@/server/account";
+import { formatWait } from "@/lib/rate-limit";
+import { LIMIT_RULES, limitWait } from "@/server/rate-limit";
 
 export type AccountState = { error?: string; message?: string };
 
@@ -85,9 +87,12 @@ export async function removeTwoFactor(form: FormData): Promise<void> {
 
 /** Second step of sign-in for users with two-factor login. */
 export async function verifyLoginCode(_prev: AccountState, form: FormData): Promise<AccountState> {
-  await requireUser();
+  const user = await requireUser();
   const code = String(form.get("code") ?? "").replace(/\s/g, "");
   if (!/^\d{6}$/.test(code)) return { error: "Enter the 6-digit code from your authenticator app." };
+  // A 6-digit code is guessable without a limit; Supabase sees every check as coming from this server.
+  const wait = await limitWait(LIMIT_RULES.mfaVerify(user.id));
+  if (wait) return { error: `Too many attempts. Try again in ${formatWait(wait)}.` };
   const supabase = await createClient();
   const { data: factors } = await supabase.auth.mfa.listFactors();
   const factor = factors?.totp?.[0];
@@ -107,6 +112,8 @@ export async function verifyLoginCode(_prev: AccountState, form: FormData): Prom
 export async function deleteAccount(_prev: AccountState, form: FormData): Promise<AccountState> {
   const user = await requireUser();
   if (!emailMatches(String(form.get("confirm_email") ?? ""), user.email)) return { error: "Type your email address exactly as shown." };
+  const wait = await limitWait(LIMIT_RULES.deleteAccount(user.id));
+  if (wait) return { error: `Too many attempts. Try again in ${formatWait(wait)}.` };
   const env = requireEnv();
   const ok = await passwordIsValid(user.email, String(form.get("password") ?? ""), user.id, {
     url: env.NEXT_PUBLIC_SUPABASE_URL,

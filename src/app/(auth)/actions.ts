@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/utils";
+import { formatWait } from "@/lib/rate-limit";
+import { LIMIT_RULES, limitWait, requestIp } from "@/server/rate-limit";
 
 export type AuthState = { error?: string; message?: string; email?: string; name?: string };
 
@@ -17,6 +19,10 @@ export async function signIn(_prev: AuthState, form: FormData): Promise<AuthStat
   const email = String(form.get("email") ?? "").trim();
   const parsed = credentials.safeParse({ email, password: form.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message, email };
+
+  // Supabase sees every sign-in as coming from this server, so its own limits are shared by all users.
+  const wait = await limitWait(LIMIT_RULES.signIn(await requestIp(), parsed.data.email));
+  if (wait) return { error: `Too many attempts. Try again in ${formatWait(wait)}.`, email };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
@@ -34,6 +40,9 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   const name = String(form.get("name") ?? "");
   const parsed = signUpSchema.safeParse({ email, name, password: form.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message, email, name };
+
+  const wait = await limitWait(LIMIT_RULES.signUp(await requestIp()));
+  if (wait) return { error: `Too many attempts. Try again in ${formatWait(wait)}.`, email, name };
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL || (await headers()).get("origin") || "";
   const supabase = await createClient();
@@ -58,6 +67,10 @@ export async function requestPasswordReset(_prev: AuthState, form: FormData): Pr
   const email = String(form.get("email") ?? "").trim();
   const parsed = z.email("Enter a valid email").max(254).safeParse(email);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message, email };
+
+  // Counted per email whether or not an account exists, so this reveals nothing.
+  const wait = await limitWait(LIMIT_RULES.passwordReset(await requestIp(), parsed.data));
+  if (wait) return { error: `Too many reset emails requested. Try again in ${formatWait(wait)}.`, email };
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL || (await headers()).get("origin") || "";
   const supabase = await createClient();
