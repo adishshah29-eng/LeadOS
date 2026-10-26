@@ -108,3 +108,17 @@ export const isPlatformAdmin = cache(async () => {
   const { data } = await supabase.from("platform_admins").select("role").eq("user_id", user.id).maybeSingle();
   return data?.role as "super_admin" | "support" | undefined;
 });
+
+/**
+ * Platform admin pages: a platform admin (optionally only these roles) signed in
+ * with two-factor. Anyone else gets a 404; an admin without 2FA is sent to set it up.
+ */
+export async function requirePlatformAdmin(roles: ("super_admin" | "support")[] = ["super_admin", "support"]) {
+  const role = await isPlatformAdmin();
+  if (!role || !roles.includes(role)) notFound();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (data?.claims?.aal !== "aal2") redirect("/account?mfa=required");
+  const user = await requireUser();
+  return { role, userId: user.id };
+}

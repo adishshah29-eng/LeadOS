@@ -200,11 +200,6 @@ test("L12: the app's limits equal the database's", async () => {
 
 // ---------------------------------------------------------------- review fixes
 
-const asAdmin = (orgId: string, role = "admin") => async (u: User) => {
-  const { error } = await admin.from("memberships").insert({ org_id: orgId, user_id: u.id, role });
-  if (error) throw error;
-};
-
 test("F2: an ad account, report link or connection can't be moved to another workspace", async () => {
   const u = await makeUser();
   const a = await makeOrg(u, "agency");

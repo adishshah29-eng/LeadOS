@@ -24,6 +24,7 @@ Stack: Next.js 16 (App Router, Server Components/Actions), Supabase (Postgres + 
 | Account page: name, password, two-factor login (authenticator app) | ✅ |
 | Client report links: read-only dashboard, no login, expiring, revocable | ✅ (needs migration 0004) |
 | Platform admin: suspend / reactivate workspaces (two-factor required) | ✅ (needs migration 0004) |
+| Platform admin: usage, health page, logged read-only support view (customers see visits) | ✅ (needs migrations 0013, 0014) |
 | Audit log (append-only) | ✅ |
 | Landing page | ✅ |
 | System / Light / Dark appearance, mobile layout, nonce-based CSP | ✅ |

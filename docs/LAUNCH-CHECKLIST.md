@@ -54,7 +54,8 @@ Last updated: 2026-10-24
 - [ ] **Run SQL to remove the two orphaned Vault secrets** in the dev database:
   `delete from vault.secrets where id in ('cd176aaa-b468-42a3-824d-f6b34508e21e','7a9bb5d9-73db-4c2b-ab8d-06baa41ae42a');`
 - [ ] **Run migration `0006_billing_guard.sql`** in the dev database if you haven't. Until then, workspace admins can change their own plan.
-- [ ] **Production database:** run every migration in order, through `0012_rate_limit_cleanup.sql` (all done in dev).
+- [ ] **Production database:** run every migration in order, through `0014_admin_tools_hardening.sql` (all done in dev).
+- [ ] **Make yourself platform admin in production** (README, "Platform admin"): sign up, turn on two-factor in Account, then add your user as `super_admin` in `platform_admins`. The admin console, health page and support view all need two-factor.
 
 ## 5. WhatsApp
 

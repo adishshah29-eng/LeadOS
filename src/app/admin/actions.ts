@@ -2,7 +2,9 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { isPlatformAdmin } from "@/lib/auth";
+import { isPlatformAdmin, requirePlatformAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { supportReason } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 import { PLAN_IDS, type PlanId } from "@/lib/plans";
 
@@ -64,4 +66,22 @@ export async function setOrgPlan(_prev: AdminState, form: FormData): Promise<Adm
   }
   revalidatePath("/admin");
   return { message: parsed.data.plan === "trial" ? `Trial extended by ${days} days.` : `Plan set to ${parsed.data.plan}.` };
+}
+
+export type SupportState = { error?: string };
+
+/** Super admin opens a workspace read-only for 30 minutes; the database checks role, two-factor and the reason, and logs it. */
+export async function startSupportView(_prev: SupportState, form: FormData): Promise<SupportState> {
+  await requirePlatformAdmin(["super_admin"]);
+  const slug = z.string().regex(/^[a-z0-9-]{3,40}$/).safeParse(form.get("slug"));
+  const reason = supportReason(String(form.get("reason") ?? ""));
+  if (!slug.success) return { error: "Unknown workspace." };
+  if (!reason.ok) return { error: "Give a reason of 3–300 characters with real words. The customer will see it in their activity log." };
+  const supabase = await createClient();
+  // The workspace is looked up from its address here, never taken from the form, so the log and the view always match.
+  const { data: org } = await supabase.from("organizations").select("id").eq("slug", slug.data).maybeSingle();
+  if (!org) return { error: "Unknown workspace." };
+  const { error } = await supabase.rpc("admin_start_support_session", { p_org: org.id, p_reason: reason.reason });
+  if (error) return { error: /two-factor/.test(error.message) ? "Sign in with your two-factor code first." : "Couldn't start the support view." };
+  redirect(`/admin/view/${slug.data}`);
 }

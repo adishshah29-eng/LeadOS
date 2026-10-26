@@ -26,9 +26,11 @@ export default async function SettingsPage({ params }: PageProps<"/o/[slug]/sett
   if (!atLeast(ctx.role, "admin")) notFound();
 
   const supabase = await createClient();
-  const [{ data: integrations }, { data: audit }, { data: links }, { data: projects }] = await Promise.all([
+  const [{ data: integrations }, { data: audit }, { data: visits }, { data: links }, { data: projects }] = await Promise.all([
     supabase.from("integrations").select("kind, status").eq("org_id", ctx.org.id),
     supabase.from("audit_log").select("id, action, target, at, actor_id").eq("org_id", ctx.org.id).order("at", { ascending: false }).limit(20),
+    // Kept apart so everyday activity never pushes support visits out of view.
+    supabase.from("audit_log").select("id, target, at").eq("org_id", ctx.org.id).eq("action", "support.viewed").order("at", { ascending: false }).limit(20),
     supabase
       .from("report_links")
       .select("id, label, expires_at, last_viewed_at, view_count, projects(name)")
@@ -131,13 +133,33 @@ export default async function SettingsPage({ params }: PageProps<"/o/[slug]/sett
       </Card>
 
       <Card className="mb-6">
+        <h2 className="border-b border-border px-5 py-3 text-sm font-medium">Support visits</h2>
+        {visits?.length ? (
+          <ul className="divide-y divide-border text-sm">
+            {visits.map((v) => (
+              <li key={v.id} className="flex flex-col gap-0.5 px-5 py-2.5 sm:flex-row sm:justify-between">
+                <span>
+                  LeadOS support viewed your workspace <span className="text-fg-muted">— {v.target}</span>
+                </span>
+                <span className="tabular text-xs text-fg-subtle">
+                  {new Date(v.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-5 py-6 text-sm text-fg-muted">LeadOS support has not opened your workspace.</p>
+        )}
+      </Card>
+
+      <Card className="mb-6">
         <h2 className="border-b border-border px-5 py-3 text-sm font-medium">Activity log</h2>
         {audit?.length ? (
           <ul className="divide-y divide-border text-sm">
             {audit.map((a) => (
               <li key={a.id} className="flex flex-col gap-0.5 px-5 py-2.5 sm:flex-row sm:justify-between">
                 <span>
-                  <code className="font-mono text-xs">{a.action}</code> <span className="text-fg-muted">{a.target}</span>
+                  {a.action === "support.viewed" ? "LeadOS support" : <code className="font-mono text-xs">{a.action}</code>} <span className="text-fg-muted">{a.target}</span>
                 </span>
                 <span className="tabular text-xs text-fg-subtle">
                   {new Date(a.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" })}
