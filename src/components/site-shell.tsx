@@ -14,6 +14,7 @@ export function SiteShell({ children, width = "max-w-3xl" }: { children: React.R
           </Link>
           <div className="flex items-center gap-1">
             <Link href="/help" className="rounded-md px-3 py-2 text-sm font-medium text-fg-muted hover:bg-surface-2 hover:text-fg">Help</Link>
+            <Link href="/blogs" className="rounded-md px-3 py-2 text-sm font-medium text-fg-muted hover:bg-surface-2 hover:text-fg">Blog</Link>
             <Link href="/app" className="rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-fg-muted hover:bg-surface-2 hover:text-fg">Open app</Link>
             <ThemeToggle />
           </div>
@@ -23,6 +24,7 @@ export function SiteShell({ children, width = "max-w-3xl" }: { children: React.R
       <footer className="border-t border-border">
         <nav aria-label="Legal" className={`mx-auto flex w-full ${width} flex-wrap gap-x-5 gap-y-2 px-4 py-6 text-sm text-fg-muted sm:px-6`}>
           <Link href="/help" className="hover:text-fg hover:underline">Help center</Link>
+          <Link href="/blogs" className="hover:text-fg hover:underline">Blog</Link>
           {LEGAL_LINKS.map((l) => (
             <Link key={l.href} href={l.href} className="hover:text-fg hover:underline">{l.label}</Link>
           ))}

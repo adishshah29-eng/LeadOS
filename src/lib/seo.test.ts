@@ -10,7 +10,19 @@ test("U14: robots allows the public site, blocks private areas, points to the si
   const rule = Array.isArray(r.rules) ? r.rules[0] : r.rules;
   assert.equal(rule.allow, "/");
   for (const p of PRIVATE) assert.ok((rule.disallow as string[]).includes(p), p);
+  assert.ok(!(rule.disallow as string[]).includes("/blogs"), "/blogs should not be disallowed");
   assert.equal(r.sitemap, "https://leados.example/sitemap.xml");
+});
+
+test("U13: sitemapEntries includes /blogs, every category and each published post with lastModified; no drafts", () => {
+  const entries = sitemapEntries("https://leados.example");
+  const urls = entries.map((e) => e.url);
+  assert.ok(urls.includes("https://leados.example/blogs"), "missing /blogs");
+  assert.ok(urls.includes("https://leados.example/blogs/category/comparisons"), "missing category");
+  assert.ok(urls.includes("https://leados.example/blogs/leados-vs-spreadsheets-and-whatsapp"), "missing post");
+  
+  const postEntry = entries.find((e) => e.url === "https://leados.example/blogs/leados-vs-spreadsheets-and-whatsapp");
+  assert.ok(postEntry?.lastModified instanceof Date, "lastModified is not Date");
 });
 
 test("U15: sitemap lists every public page as a full URL, nothing private", () => {
