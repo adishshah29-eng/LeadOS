@@ -16,6 +16,20 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   turbopack: { root: path.resolve(__dirname) },
+  async redirects() {
+    return [
+      {
+        source: "/blog",
+        destination: "/blogs",
+        permanent: true,
+      },
+      {
+        source: "/blog/:path*",
+        destination: "/blogs/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     const hsts = Object.entries(extraHeaders(process.env.NODE_ENV !== "production")).map(([key, value]) => ({ key, value }));
     return [{ source: "/:path*", headers: [...securityHeaders, ...hsts] }];
@@ -24,6 +38,6 @@ const nextConfig: NextConfig = {
 
 export default function config(phase: string): NextConfig {
   // A production build with missing secrets or dev switches fails here instead of deploying.
-  checkBuild(phase, process.env);
+  checkBuild(phase, process.env, process.argv);
   return nextConfig;
 }

@@ -46,6 +46,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
             <a href="#how" className="hidden rounded-md px-3 py-2 text-sm font-medium hover:bg-ink/10 md:inline-block">How it works</a>
             <a href="#team" className="hidden rounded-md px-3 py-2 text-sm font-medium hover:bg-ink/10 md:inline-block">For teams</a>
+            <Link href="/blogs" className="hidden rounded-md px-3 py-2 text-sm font-medium hover:bg-ink/10 md:inline-block">Blog</Link>
             <a href="#faq" className="hidden rounded-md px-3 py-2 text-sm font-medium hover:bg-ink/10 md:inline-block">FAQ</a>
             <Link href="/login" className="rounded-md px-3 py-2 text-sm font-medium hover:bg-ink/10">Sign in</Link>
             <Link href="/signup" className="rounded-md bg-ink px-3 py-2 text-sm font-semibold text-ink-fg hover:bg-ink/85">Start free trial</Link>
@@ -201,6 +202,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           <span className="flex items-center gap-2"><Logo className="size-5" /> © {new Date().getFullYear()} {BRAND.name}</span>
           <nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
             <Link href="/help" className="hover:text-fg hover:underline">Help center</Link>
+            <Link href="/blogs" className="hover:text-fg hover:underline">Blog</Link>
             {LEGAL_LINKS.map((l) => (
               <Link key={l.href} href={l.href} className="hover:text-fg hover:underline">{l.label}</Link>
             ))}

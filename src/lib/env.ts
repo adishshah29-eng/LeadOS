@@ -65,7 +65,7 @@ export function assertProductionEnv(env: Record<string, string | undefined>) {
  * of deploying. `next typegen` loads the config in the same phase but only
  * generates types (CI runs it with no secrets), so it is let through.
  */
-export function checkBuild(phase: string, env: Record<string, string | undefined>, argv: string[] = process.argv) {
+export function checkBuild(phase: string, env: Record<string, string | undefined>, argv: string[] = []) {
   if (phase === "phase-production-build" && !argv.includes("typegen")) assertProductionEnv(env);
 }
 

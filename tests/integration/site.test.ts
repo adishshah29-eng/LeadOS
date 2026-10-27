@@ -72,3 +72,58 @@ test("I9 + I10: report links allow 300 opens a minute per address; the next is t
     await admin.from("rate_limits").delete().in("key", [`report:ip:${ip}`, `report:ip:${other}`]);
   }
 });
+
+test("I11: signed-out visitors can open /blogs, a category page, and a post without redirecting to /login", async () => {
+  for (const path of ["/blogs", "/blogs/category/comparisons", "/blogs/leados-vs-spreadsheets-and-whatsapp"]) {
+    const res = await get(path);
+    assert.equal(res.headers.get("location"), null, `Redirected on ${path}`);
+    assert.equal(res.status, 200, `Non-200 status on ${path}`);
+  }
+});
+
+test("I12: /blogs/does-not-exist and /blogs/category/nope return 404", async () => {
+  for (const path of ["/blogs/does-not-exist", "/blogs/category/nope"]) {
+    const res = await get(path);
+    assert.equal(res.status, 404, path);
+  }
+});
+
+test("I13: post HTML contains canonical link, og:type=article, one h1, and ld+json", async () => {
+  const res = await get("/blogs/leados-vs-spreadsheets-and-whatsapp");
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /rel="canonical"/i);
+  assert.match(html, /og:type/i);
+  assert.match(html, /type="application\/ld\+json"/i);
+  const h1Matches = html.match(/<h1[\s>]/gi) || [];
+  assert.equal(h1Matches.length, 1, `Expected exactly 1 h1 tag, got ${h1Matches.length}`);
+});
+
+test("I14: /blog permanently redirects to /blogs (308)", async () => {
+  const res = await get("/blog");
+  assert.equal(res.status, 308);
+  assert.equal(res.headers.get("location"), "/blogs");
+});
+
+test("I15: comparison post shows disclaimer and checked-on date", async () => {
+  const res = await get("/blogs/leados-vs-spreadsheets-and-whatsapp");
+  const html = await res.text();
+  assert.match(html, /is a trademark of its owner/);
+  assert.match(html, /Information checked on.*2026-10-20/);
+});
+
+test("I16: /sitemap.xml contains published post URLs and /blogs", async () => {
+  const res = await get("/sitemap.xml");
+  assert.equal(res.status, 200);
+  const text = await res.text();
+  assert.match(text, /\/blogs<\/loc>/);
+  assert.match(text, /\/blogs\/leados-vs-spreadsheets-and-whatsapp<\/loc>/);
+});
+
+test("I17: landing page links to /blogs in nav and footer", async () => {
+  const res = await get("/");
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /href="\/blogs"/);
+});
+
