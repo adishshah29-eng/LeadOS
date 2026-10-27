@@ -14,6 +14,18 @@ Written 27 Oct 2026 for the first launch with two clients. Do the steps in order
 | Billing | Not built. Clients get a 14-day trial; you extend it or set their plan in `/admin`. |
 | "Continue with Facebook" | Not yet; it needs Meta App Review. Clients paste a token instead. |
 
+## Decision: live and local share one Supabase project (27 Oct 2026)
+
+The live site (`https://lead-os-rosy.vercel.app`) and your PC use the same Supabase project, which already has migrations 0001–0014. Because real client data now lives there:
+
+- **Don't run `npm run inngest:dev` on your PC.** Local background jobs would work on live data. With `WA_DRY_RUN=1`, a local follow-up job marks real leads as messaged without sending anything, so the client's real follow-ups would be skipped.
+- **Don't run `npm run test:int`.** It creates and deletes throwaway users and workspaces in that database.
+- `npm test` (unit tests) and `npm run dev` are fine: they don't run background jobs.
+- **Supabase → Authentication → URL Configuration:** Site URL `https://lead-os-rosy.vercel.app`; redirect URLs `https://lead-os-rosy.vercel.app/**` and `http://localhost:3000/**`.
+- When you rotate the Supabase secret key, update it in both `.env.local` and Vercel.
+
+Step 1 below is only for moving to a separate production project later.
+
 ## 1. A new Supabase project for production
 
 Don't reuse the dev project: tests create and delete users there.
