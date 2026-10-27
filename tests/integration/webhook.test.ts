@@ -1,4 +1,5 @@
 // Meta webhook against the running app and the real dev database.
+import "./_lock.ts";
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";

@@ -18,8 +18,12 @@ Written 27 Oct 2026 for the first launch with two clients. Do the steps in order
 
 The live site (`https://lead-os-rosy.vercel.app`) and your PC use the same Supabase project, which already has migrations 0001–0014. Because real client data now lives there:
 
-- **Don't run `npm run inngest:dev` on your PC.** Local background jobs would work on live data. With `WA_DRY_RUN=1`, a local follow-up job marks real leads as messaged without sending anything, so the client's real follow-ups would be skipped.
-- **Don't run `npm run test:int`.** It creates and deletes throwaway users and workspaces in that database.
+- **Local background jobs are locked.** They would work on live data: with `WA_DRY_RUN=1`, a local follow-up job marks real leads as messaged without sending anything, so the client's real follow-ups would be skipped. On your PC, `/api/inngest` refuses (error 503) unless you allow that run of `npm run dev`.
+- **Integration tests are locked.** They create and delete throwaway users and workspaces in that database. They stop before touching it unless you allow that run of `npm run test:int`.
+- To allow one run, type the switch before the command:
+  - Git Bash: `LEADOS_ALLOW_LIVE_DB=yes npm run dev`
+  - PowerShell: `$env:LEADOS_ALLOW_LIVE_DB="yes"; try { npm run dev } finally { Remove-Item Env:LEADOS_ALLOW_LIVE_DB }` (the `finally` turns the switch off again even if you stop it with Ctrl+C)
+- Never put `LEADOS_ALLOW_LIVE_DB` in any `.env` file (`.env`, `.env.local`, `.env.development`, `.env.development.local`): the lock refuses it there. Don't set it as a permanent Windows variable either (`setx`); the lock can't tell that apart from typing it.
 - `npm test` (unit tests) and `npm run dev` are fine: they don't run background jobs.
 - **Supabase → Authentication → URL Configuration:** Site URL `https://lead-os-rosy.vercel.app`; redirect URLs `https://lead-os-rosy.vercel.app/**` and `http://localhost:3000/**`.
 - When you rotate the Supabase secret key, update it in both `.env.local` and Vercel.

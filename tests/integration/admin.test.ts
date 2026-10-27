@@ -1,6 +1,7 @@
 // Platform admin tools against the real dev database (needs migration 0013).
 // Throwaway users on @example.test; admins get a real two-factor session by
 // enrolling an authenticator and computing the codes here (RFC 6238 TOTP).
+import "./_lock.ts";
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";

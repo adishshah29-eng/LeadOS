@@ -1,4 +1,5 @@
 // Rate-limit counters against the real dev database (needs migration 0011).
+import "./_lock.ts";
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";

@@ -1,4 +1,5 @@
 // Password re-check used before account deletion, against the real dev Supabase.
+import "./_lock.ts";
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";

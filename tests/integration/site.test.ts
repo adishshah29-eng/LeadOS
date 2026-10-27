@@ -1,6 +1,7 @@
 // Integration tests against the running app and its real database.
 // Start the app first (npm run dev), then: npm run test:int
 // BASE_URL defaults to http://localhost:3000.
+import "./_lock.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

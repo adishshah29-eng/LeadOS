@@ -70,6 +70,8 @@ in Supabase, so sign-up logs you straight in.
    npm run inngest:dev
    ```
    Its dashboard (http://localhost:8288) shows every sync run, retry and failure.
+   Local jobs are locked while this PC shares the live database: start the app with
+   `LEADOS_ALLOW_LIVE_DB=yes npm run dev` to allow them for that run (see Tests below).
 4. In the app: **Settings → Meta → Connect**, paste a System User token, pick ad accounts and Pages, **Save and sync**.
 5. Instant leads need a public URL. Point the Meta app's webhook (Page → `leadgen`) at
    `https://<your-domain>/api/webhooks/meta` with `META_WEBHOOK_VERIFY_TOKEN` as the verify token.
@@ -203,6 +205,12 @@ npm test            # unit tests (also run by CI)
 npm run typecheck   # generates route types, then tsc
 npm run test:int    # integration tests against the running app: start `npm run dev` first
 ```
+
+> **Safety lock.** This PC shares its Supabase database with the live site, so integration tests and
+> local background jobs refuse to run unless you allow that one run. Type the switch before the command
+> (don't put it in any `.env` file: the lock refuses it there). Use `npm run dev` instead of `npm run test:int` for local jobs.
+> - Git Bash: `LEADOS_ALLOW_LIVE_DB=yes npm run test:int`
+> - PowerShell: `$env:LEADOS_ALLOW_LIVE_DB="yes"; try { npm run test:int } finally { Remove-Item Env:LEADOS_ALLOW_LIVE_DB }`
 
 Unit tests (Node's built-in runner) cover the WhatsApp bot's decisions, the AI reply guard, phone number
 formatting, the waste/best flags and CSV encoding.

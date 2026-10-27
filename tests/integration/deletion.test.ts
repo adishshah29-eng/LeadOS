@@ -1,6 +1,7 @@
 // Self-serve deletion against the real dev database (needs migration 0007).
 // Creates throwaway users on @example.test and removes everything afterwards.
 // Run: npm run test:int  (reads .env.local)
+import "./_lock.ts";
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
