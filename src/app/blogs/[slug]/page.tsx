@@ -10,8 +10,10 @@ import {
   jsonLdScript,
   articleJsonLd,
   breadcrumbJsonLd,
-  cleanOrigin,
+  formatDate,
+  BLOG_CTA,
 } from "@/lib/blog";
+import { siteOrigin } from "@/lib/seo";
 import { ALL_POSTS } from "@/content/blog";
 import { TableOfContents } from "@/components/blog/toc";
 import { ComparisonTable } from "@/components/blog/comparison-table";
@@ -34,8 +36,7 @@ export async function generateMetadata({
   const post = postBySlug(ALL_POSTS, slug);
   if (!post) return {};
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://leados.in";
-  const origin = cleanOrigin(siteUrl);
+  const origin = siteOrigin();
   const canonical = `${origin}/blogs/${post.slug}`;
   const ogImage = `${origin}/blogs/${post.slug}/opengraph-image`;
 
@@ -80,7 +81,7 @@ export default async function BlogPostPage({
   const post = postBySlug(ALL_POSTS, slug);
   if (!post) notFound();
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://leados.in";
+  const siteUrl = siteOrigin();
   const catMeta = CATEGORIES[post.category] ?? { name: post.category };
   const mins = readingMinutes(post);
   const toc = tableOfContents(post);
@@ -130,11 +131,11 @@ export default async function BlogPostPage({
           <span>·</span>
           <div className="flex items-center gap-1.5">
             <span>Published</span>
-            <time dateTime={post.publishedOn}>{post.publishedOn}</time>
+            <time dateTime={post.publishedOn}>{formatDate(post.publishedOn)}</time>
             {post.updatedOn && (
               <>
                 <span>(Updated</span>
-                <time dateTime={post.updatedOn}>{post.updatedOn}</time>
+                <time dateTime={post.updatedOn}>{formatDate(post.updatedOn)}</time>
                 <span>)</span>
               </>
             )}
@@ -148,7 +149,7 @@ export default async function BlogPostPage({
       <div className="space-y-6">
         <TableOfContents entries={toc} />
 
-        <div className="prose-clean">
+        <div>
           {post.blocks.map((block, idx) => (
             <BlockRenderer key={idx} block={block} />
           ))}
@@ -201,17 +202,17 @@ export default async function BlogPostPage({
       {/* Free Trial Call to Action */}
       <div className="mt-12 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-surface to-surface-2 p-8 text-center space-y-4">
         <h2 className="text-2xl font-bold tracking-tight text-fg">
-          Ready to stop losing real estate leads?
+          {BLOG_CTA.heading}
         </h2>
         <p className="mx-auto max-w-xl text-sm text-fg-muted leading-relaxed">
-          LeadOS connects your Meta lead ads to a 24/7 WhatsApp qualifying bot, scores every buyer, and notifies your sales team in seconds.
+          {BLOG_CTA.body}
         </p>
         <div className="pt-2">
           <Link
             href="/signup"
             className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-primary-fg shadow hover:bg-primary/90 transition-colors"
           >
-            Start your 14-day free trial →
+            {BLOG_CTA.button} →
           </Link>
         </div>
       </div>

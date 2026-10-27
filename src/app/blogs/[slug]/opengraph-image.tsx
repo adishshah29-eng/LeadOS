@@ -2,9 +2,13 @@ import { ImageResponse } from "next/og";
 import { BRAND } from "@/lib/brand";
 import { ALL_POSTS } from "@/content/blog";
 import { CATEGORIES, postBySlug, publishedPosts } from "@/lib/blog";
+import { siteOrigin } from "@/lib/seo";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+// Only published posts have a share image; anything else is a 404.
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return publishedPosts(ALL_POSTS).map((post) => ({ slug: post.slug }));
@@ -87,7 +91,7 @@ export default async function Image({
             color: "#a1a1aa",
           }}
         >
-          <div>leados.in/blogs</div>
+          <div>{`${new URL(siteOrigin()).host}/blogs`}</div>
           <div>Real Estate Marketing & Lead Management</div>
         </div>
       </div>

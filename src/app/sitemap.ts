@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
-import { sitemapEntries } from "@/lib/seo";
+import { siteOrigin, sitemapEntries } from "@/lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return sitemapEntries(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+  return sitemapEntries(siteOrigin());
 }

@@ -3,65 +3,48 @@ import type { Post } from "@/lib/blog";
 export const post: Post = {
   slug: "lead-scoring-real-estate-india",
   title: "Lead Scoring for Indian Real Estate: A Practical Framework",
-  description: "How Indian property developers score inbound leads into Hot, Warm, and Cold. Boost site visits and ensure top agents focus on genuine buyers.",
+  description: "A simple way to sort property leads into hot, warm and cold, so your best callers spend their time on genuine buyers first.",
   category: "lead-management",
   author: { name: "Adish Shah", role: "Founder" },
   publishedOn: "2026-10-24",
+  updatedOn: "2026-10-27",
   blocks: [
+    { kind: "h2", id: "why-scoring-matters", text: "The problem on a busy launch weekend" },
     {
-      kind: "h2",
-      id: "why-scoring-matters",
-      text: "The lead triage problem on high-volume property launches",
+      kind: "p",
+      text: "A project launch or festive offer can bring in hundreds of leads in a few days. Without a way to sort them, callers work through the list in order, reaching casual browsers first while serious buyers wait for a call.",
     },
     {
       kind: "p",
-      text: "During a new residential project launch or festive promotional drive, an ad campaign might generate 200 to 500 leads in a single weekend. Without an objective scoring system, sales teams dial numbers alphabetically or in order of entry, often reaching casual window-shoppers while genuine buyers with approved home loans wait hours for a callback.",
+      text: "Lead scoring sorts every lead into hot, warm or cold, so the most likely buyers are called first.",
     },
-    {
-      kind: "p",
-      text: "Lead scoring categorizes every contact into Hot, Warm, or Cold based on demographic fit, financial readiness, and behavioral engagement.",
-    },
-    {
-      kind: "h2",
-      id: "the-scoring-matrix",
-      text: "The 3-pillar scoring matrix for Indian homebuyers",
-    },
+    { kind: "h2", id: "the-scoring-matrix", text: "Three things to score on" },
     {
       kind: "list",
-      ordered: false,
       items: [
-        "Financial readiness: Prospect confirms budget matches the project pricing and has either pre-approved home loan status or liquid down payment ready.",
-        "Possession timeline: Buyer needs immediate possession within 3 to 6 months for personal use, compared to speculative investors browsing 4 years out.",
-        "Engagement velocity: Lead responds to the initial automated WhatsApp inquiry within 5 minutes and chooses a preferred site visit slot.",
+        "Budget fit: does their budget match the units you have?",
+        "Timeline: are they buying soon for their own use, or browsing for later?",
+        "Engagement: did they answer your first message and ask for a call or a visit?",
       ],
     },
+    { kind: "h2", id: "routing-to-top-closers", text: "Send hot leads to your best people" },
     {
-      kind: "h2",
-      id: "routing-to-top-closers",
-      text: "Routing hot leads directly to your top closers",
+      kind: "p",
+      text: "Hot leads should skip the general calling queue and go straight to an experienced salesperson, the same day. Speed matters: research in Harvard Business Review found that firms contacting leads within an hour were nearly 7× as likely to qualify them [1].",
     },
     {
       kind: "p",
-      text: "Once a lead is scored Hot through conversational qualification, they should bypass the generic telecalling pool and connect directly to a senior sales manager or site specialist via an instant phone transfer or WhatsApp VIP notification.",
+      text: "Cold leads are not lost leads. Keep them warm with occasional, useful updates, such as construction progress or new offers, and score them again when they reply.",
     },
     {
-      kind: "p",
-      text: "Cold leads are not discarded; instead, they are entered into an automated WhatsApp nurture sequence that shares construction updates, sample flat walkthrough videos, and festive payment schemes over the following 60 days.",
+      kind: "callout",
+      tone: "tip",
+      text: "In LeadOS, the WhatsApp bot scores each lead hot, warm or cold from their answers and marks hot leads for your team's attention.",
     },
-    {
-      kind: "cta",
-      text: "Automate your lead scoring and route high-intent buyers in seconds. Start with LeadOS free.",
-    },
+    { kind: "cta", text: "Let LeadOS ask the questions and score every Meta lead for you. Try it free for 14 days." },
   ],
   sources: [
-    {
-      label: "PropTiger Indian Real Estate Research Reports",
-      url: "https://www.proptiger.com/guide",
-    },
-    {
-      label: "Harvard Business Review The Short Life of Online Sales Leads",
-      url: "https://hbr.org/2011/03/the-short-life-of-online-sales-leads",
-    },
+    { label: "Harvard Business Review: The Short Life of Online Sales Leads (2011)", url: "https://hbr.org/2011/03/the-short-life-of-online-sales-leads" },
   ],
   related: ["speed-to-lead-real-estate", "cost-per-lead-meta-ads-real-estate-india"],
 };

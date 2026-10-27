@@ -120,9 +120,17 @@ export function activeCategories(posts: Post[], now: Date = new Date()): Categor
   return order.filter((c) => active.has(c));
 }
 
+const countWords = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
+
 /** Calculates estimated reading minutes (~200 words per minute, rounded up, at least 1). */
 export function readingMinutes(post: Post): number {
   let wordCount = 0;
+  const c = post.comparison;
+  if (c) {
+    for (const r of c.rows) wordCount += countWords(r.feature) + countWords(r.us) + countWords(r.them);
+    wordCount += countWords(c.bestFor.us) + countWords(c.bestFor.them);
+  }
+  for (const f of post.faq ?? []) wordCount += countWords(f.q) + countWords(f.a);
   for (const b of post.blocks) {
     if ("text" in b && typeof b.text === "string") {
       wordCount += b.text.trim().split(/\s+/).filter(Boolean).length;
@@ -151,6 +159,32 @@ export function tableOfContents(post: Post): { text: string; id: string }[] {
   }
   return toc;
 }
+
+/** "2026-10-24" → "24 Oct 2026". Anything else is returned as it is. */
+export function formatDate(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || Number.isNaN(Date.parse(iso))) return iso;
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+/**
+ * A statistic in post text: a percentage, a rupee amount, a multiple ("7×")
+ * or a big count ("53 crore"). Each one must cite a source as [n].
+ */
+export const STAT_PATTERN = /\d[\d,.]*\s?%|₹\s?\d|\b\d+(?:\.\d+)?\s?[x×](?![a-z0-9])|\b\d[\d,.]*\s?(?:crore|lakh|million|billion)\b/i;
+
+/**
+ * Things LeadOS does not do today, so posts must not claim them for LeadOS:
+ * sending brochures or floor plans, booking site visits, alerting the team,
+ * billing (not built yet).
+ */
+export const OVERCLAIM_PATTERN = /brochure|floor plan|site visit booking|book(?:s|ing)?\s+(?:a\s+|the\s+|your\s+)?site visits?|notif(?:y|ies|ication)|alerts? (?:your|the) (?:team|agent)|INR billing|billed in (?:INR|rupees)/i;
+
+/** The sign-up box at the end of every post. Only what the product does today. */
+export const BLOG_CTA = {
+  heading: "Stop losing leads between the ad and the first reply",
+  body: "LeadOS pulls in your Meta leads as they arrive, greets each one on WhatsApp, asks your qualifying questions, and marks hot leads in your team's inbox.",
+  button: "Start your 14-day free trial",
+} as const;
 
 /** Serializes JSON-LD with < escaped to prevent script tag breakout. */
 export function jsonLdScript(data: unknown): string {

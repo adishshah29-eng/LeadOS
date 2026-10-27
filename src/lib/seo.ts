@@ -9,6 +9,9 @@ const PRIVATE = ["/o/", "/admin", "/api/", "/r/", "/account", "/onboarding", "/i
 /** Just scheme + host, so stray spaces, slashes, queries or fragments never reach a link. */
 const trim = (base: string) => new URL(base.trim()).origin;
 
+/** The site's address for links and canonical URLs: NEXT_PUBLIC_SITE_URL, or local dev when unset. */
+export const siteOrigin = (raw: string | undefined = process.env.NEXT_PUBLIC_SITE_URL) => trim(raw?.trim() || "http://localhost:3000");
+
 export function robotsRules(base: string): MetadataRoute.Robots {
   return { rules: { userAgent: "*", allow: "/", disallow: PRIVATE }, sitemap: `${trim(base)}/sitemap.xml` };
 }

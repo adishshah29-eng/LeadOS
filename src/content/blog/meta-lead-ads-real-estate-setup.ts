@@ -3,66 +3,46 @@ import type { Post } from "@/lib/blog";
 export const post: Post = {
   slug: "meta-lead-ads-real-estate-setup",
   title: "How to Set Up Meta Lead Ads for Real Estate in India",
-  description: "Step-by-step setup guide for real estate Facebook and Instagram lead forms. Learn custom questions, high-intent forms, targeting, and instant sync.",
+  description: "Set up Facebook and Instagram lead forms for property campaigns: form type, the questions to ask, and getting leads to your team quickly.",
   category: "real-estate-marketing",
   author: { name: "Adish Shah", role: "Founder" },
   publishedOn: "2026-10-24",
+  updatedOn: "2026-10-27",
   blocks: [
-    {
-      kind: "h2",
-      id: "instant-forms-vs-landing-pages",
-      text: "Meta instant forms vs external landing pages for property campaigns",
-    },
+    { kind: "h2", id: "instant-forms-vs-landing-pages", text: "Instant forms or a landing page?" },
     {
       kind: "p",
-      text: "Real estate marketing teams often debate whether to direct ad traffic to an external landing page or use Meta Instant Forms (native lead generation ads). In Indian mobile environments, native instant forms load in milliseconds without external redirect delays, delivering 3x to 5x higher conversion rates compared to slow mobile websites.",
+      text: "Meta instant forms open inside Facebook and Instagram, with the person's name and phone number filled in from their profile. That makes them quick to submit on a phone, with no website to load. The same convenience means people can submit by accident, so the form settings matter.",
     },
+    { kind: "h2", id: "more-volume-vs-higher-intent", text: "Choose Higher Intent over More Volume" },
     {
       kind: "p",
-      text: "However, because Meta forms auto-populate user contact details from Facebook profiles, poorly configured forms can attract accidental submissions. Configuring the right form settings is essential to filtering out junk inquiries.",
+      text: "When you create the form, the Higher Intent type adds a step where people review and confirm their answers before submitting [1]. You will usually get fewer leads, but more of them will be real. Judge it on cost per site visit, not cost per lead.",
     },
-    {
-      kind: "h2",
-      id: "more-volume-vs-higher-intent",
-      text: "Choosing Higher Intent over More Volume",
-    },
-    {
-      kind: "p",
-      text: "In Meta Ads Manager, always select the Higher Intent form type rather than More Volume. The Higher Intent setting adds a mandatory review step where users must swipe to confirm their phone number and answers before submitting. This single extra step eliminates accidental clicks by over 60%.",
-    },
-    {
-      kind: "h2",
-      id: "essential-custom-questions",
-      text: "The 3 custom questions every real estate form must include",
-    },
+    { kind: "h2", id: "essential-custom-questions", text: "Three questions every property form should ask" },
     {
       kind: "list",
       ordered: true,
       items: [
-        "Apartment Configuration: Dropdown options (e.g., 2 BHK Elegance, 3 BHK Grand, 4 BHK Penthouse).",
-        "Purchase Budget: Realistic price bands (e.g., ₹85 Lakh - ₹1.2 Cr, ₹1.2 Cr - ₹1.8 Cr, Above ₹1.8 Cr). Avoid open text fields.",
-        "Possession Requirement: Pre-defined options (e.g., Ready to move in, Within 6 months, Under construction 2027+).",
+        "Configuration: multiple choice, matching the unit types you actually have (for example 2 BHK, 3 BHK).",
+        "Budget: multiple-choice price bands that match your project's real price range. Avoid open text boxes.",
+        "Timeline: when they plan to buy or move in, as multiple choice (for example ready to move, within 6 months, later).",
       ],
     },
     {
-      kind: "h2",
-      id: "instant-crm-sync",
-      text: "Connecting instant webhooks to avoid CSV download delays",
+      kind: "callout",
+      tone: "tip",
+      text: "Keep it to two or three questions. Every extra question lowers the number of people who finish the form.",
     },
+    { kind: "h2", id: "instant-crm-sync", text: "Don't leave leads sitting in Ads Manager" },
     {
       kind: "p",
-      text: "Never allow leads to sit in Ads Manager CSV export queues. Hook your Meta lead form directly to an automated real estate OS via real-time webhooks so your sales automation triggers within seconds of the user swiping submit.",
+      text: "Downloading leads once a day means some buyers wait hours for a reply. Connect your lead forms to your CRM through Meta's lead webhook, so each lead reaches your team as soon as it is submitted.",
     },
-    {
-      kind: "cta",
-      text: "Connect your Meta lead ad accounts to LeadOS in under 5 minutes with zero coding required.",
-    },
+    { kind: "cta", text: "Connect your Meta lead forms to LeadOS in about 10 minutes with our step-by-step guide. Try it free for 14 days." },
   ],
   sources: [
-    {
-      label: "Meta Ads Guide for Real Estate Advertisers",
-      url: "https://www.facebook.com/business/industries/real-estate",
-    },
+    { label: "Meta for Developers: lead ads forms and questions", url: "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/forms-questions" },
   ],
   related: ["cost-per-lead-meta-ads-real-estate-india", "speed-to-lead-real-estate"],
 };

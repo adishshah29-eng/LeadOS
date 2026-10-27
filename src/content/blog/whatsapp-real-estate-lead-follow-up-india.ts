@@ -3,69 +3,54 @@ import type { Post } from "@/lib/blog";
 export const post: Post = {
   slug: "whatsapp-real-estate-lead-follow-up-india",
   title: "WhatsApp Follow-Up for Indian Real Estate: Templates & Guide",
-  description: "High-converting WhatsApp message scripts and follow-up templates for property developers and brokers. Stop getting blocked and start booking visits.",
+  description: "WhatsApp message examples for property developers and brokers, and how to follow up without getting reported or blocked.",
   category: "whatsapp-marketing",
   author: { name: "Adish Shah", role: "Founder" },
   publishedOn: "2026-10-24",
+  updatedOn: "2026-10-27",
   blocks: [
+    { kind: "h2", id: "why-whatsapp-rules", text: "Why WhatsApp is the main channel for property leads" },
     {
-      kind: "h2",
-      id: "why-whatsapp-rules",
-      text: "Why WhatsApp is the primary communication channel in Indian real estate",
+      kind: "p",
+      text: "In 2021 the Government of India cited 53 crore WhatsApp users in the country [1]. Many buyers ignore calls from unknown numbers but will read a WhatsApp message about a project they just asked about.",
     },
     {
       kind: "p",
-      text: "With over 500 million active users in India, WhatsApp is not just an instant messaging app; it is the default digital operating system for consumer communication. Indian homebuyers ignore unknown voice calls and rarely open marketing emails, but they check WhatsApp within 5 minutes of receiving a notification.",
+      text: "Sending generic flyers to everyone is the fastest way to get reported or blocked. Messages that refer to what the person asked about, and ask one easy question, get more replies.",
     },
+    { kind: "h2", id: "first-response-template", text: "Example 1: the first reply" },
     {
       kind: "p",
-      text: "However, simply sending generic marketing flyers or copy-pasted promotional blurbs leads to immediate blocks and account bans. Successful developers use respectful, conversational templates that deliver instant value.",
-    },
-    {
-      kind: "h2",
-      id: "first-response-template",
-      text: "Template 1: The instant welcome and brochure delivery",
-    },
-    {
-      kind: "p",
-      text: "This message should trigger within 60 seconds of a Facebook or Instagram lead form submission, acknowledging the exact project they inquired about:",
+      text: "Send it as soon as the lead comes in, and mention the exact project they asked about. On the WhatsApp Business Platform, a first message like this must be a template approved by Meta [2].",
     },
     {
       kind: "quote",
-      text: "Namaste [Name]! Thank you for inquiring about [Project Name] in [Location]. Here is your official PDF brochure and master layout plan. Are you looking for a 2 BHK or 3 BHK residence for your family?",
+      text: "Namaste [Name]! Thank you for your interest in [Project Name] in [Location]. Are you looking for a 2 BHK or a 3 BHK?",
     },
-    {
-      kind: "h2",
-      id: "site-visit-invitation",
-      text: "Template 2: Weekend sample flat tour invitation",
-    },
+    { kind: "h2", id: "site-visit-invitation", text: "Example 2: the weekend visit invitation" },
     {
       kind: "p",
-      text: "Sent on Thursday or Friday afternoon to qualified prospects to lock in weekend footfall:",
+      text: "Send it on Thursday or Friday to people who have shown real interest:",
     },
     {
       kind: "quote",
-      text: "Hi [Name], our designer 3 BHK sample flat at [Project Name] is open for private preview this Saturday and Sunday. Would morning (11 AM to 1 PM) or evening (4 PM to 7 PM) suit you best for a guided walkthrough?",
+      text: "Hi [Name], the 3 BHK sample flat at [Project Name] is open this Saturday and Sunday. Would morning (11 AM to 1 PM) or evening (4 PM to 7 PM) suit you for a visit?",
     },
+    { kind: "h2", id: "avoiding-spam-reports", text: "Follow up without getting blocked" },
     {
-      kind: "h2",
-      id: "avoiding-spam-reports",
-      text: "How to maintain high WhatsApp quality ratings and prevent bans",
+      kind: "list",
+      items: [
+        "Only message people who gave you their number for this project.",
+        "Use Meta-approved templates to start conversations, and keep them specific.",
+        "Make it easy to opt out, and stop messaging people who do.",
+        "Space out follow-ups; a few useful messages beat many generic ones.",
+      ],
     },
-    {
-      kind: "p",
-      text: "To avoid user complaints and protect your WhatsApp phone number reputation, always send messages using official pre-approved Meta message templates on the WhatsApp Business Cloud API. Always provide a clear opt-out option so uninterested contacts can stop notifications gracefully.",
-    },
-    {
-      kind: "cta",
-      text: "Deploy proven real estate WhatsApp bots that qualify leads and schedule site visits automatically. Try LeadOS today.",
-    },
+    { kind: "cta", text: "LeadOS sends your approved welcome to every new Meta lead and follows up automatically. Try it free for 14 days." },
   ],
   sources: [
-    {
-      label: "Meta Business Messaging Best Practices & Guidelines",
-      url: "https://www.facebook.com/business/m/messaging",
-    },
+    { label: "Bar and Bench: IT Rules 2021 and platform user numbers", url: "https://barandbench.com/news/law-policy/platforms-with-more-than-50-lakh-users-to-be-significant-social-media-intermediaries-it-rules" },
+    { label: "Meta for Developers: WhatsApp Business Platform pricing", url: "https://developers.facebook.com/docs/whatsapp/pricing" },
   ],
-  related: ["real-estate-lead-follow-up-cadence", "speed-to-lead-real-estate"],
+  related: ["real-estate-lead-follow-up-cadence", "whatsapp-business-api-real-estate-india"],
 };

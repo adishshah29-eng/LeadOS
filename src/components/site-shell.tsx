@@ -8,14 +8,14 @@ export function SiteShell({ children, width = "max-w-3xl" }: { children: React.R
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="border-b border-border">
-        <div className={`mx-auto flex w-full ${width} items-center justify-between gap-3 px-4 py-4 sm:px-6`}>
+        <div className={`mx-auto flex w-full ${width} items-center justify-between gap-2 px-4 py-4 sm:px-6`}>
           <Link href="/" className="flex items-center gap-2 font-semibold" aria-label={`${BRAND.name} home`}>
             <Logo /> {BRAND.name}
           </Link>
-          <div className="flex items-center gap-1">
-            <Link href="/help" className="rounded-md px-3 py-2 text-sm font-medium text-fg-muted hover:bg-surface-2 hover:text-fg">Help</Link>
-            <Link href="/blogs" className="rounded-md px-3 py-2 text-sm font-medium text-fg-muted hover:bg-surface-2 hover:text-fg">Blog</Link>
-            <Link href="/app" className="rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-fg-muted hover:bg-surface-2 hover:text-fg">Open app</Link>
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <Link href="/help" className="rounded-md px-2 py-2 sm:px-3 text-sm font-medium text-fg-muted hover:bg-surface-2 hover:text-fg">Help</Link>
+            <Link href="/blogs" className="rounded-md px-2 py-2 sm:px-3 text-sm font-medium text-fg-muted hover:bg-surface-2 hover:text-fg">Blog</Link>
+            <Link href="/app" className="rounded-md px-2 py-2 text-sm font-medium whitespace-nowrap text-fg-muted hover:bg-surface-2 hover:text-fg sm:px-3"><span className="sm:hidden">App</span><span className="hidden sm:inline">Open app</span></Link>
             <ThemeToggle />
           </div>
         </div>

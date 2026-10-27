@@ -183,3 +183,80 @@ test("U15: each category has at least one published post, or isn't listed", () =
   }
 });
 
+
+// ---------------------------------------------------------------- review fixes (verified content)
+
+import { formatDate, BLOG_CTA, STAT_PATTERN, OVERCLAIM_PATTERN } from "./blog.ts";
+
+test("T1: dates read as '24 Oct 2026'; anything that isn't a date comes back unchanged", () => {
+  assert.equal(formatDate("2026-10-24"), "24 Oct 2026");
+  assert.equal(formatDate("2026-01-05"), "5 Jan 2026");
+  assert.equal(formatDate("not-a-date"), "not-a-date");
+});
+
+test("T2: reading time counts the comparison table and the FAQ", () => {
+  const words = (n: number) => Array.from({ length: n }, () => "word").join(" ");
+  const post: Post = {
+    ...samplePost,
+    blocks: [],
+    comparison: {
+      competitor: "Example",
+      website: "https://example.com",
+      checkedOn: "2026-10-20",
+      rows: [{ feature: words(100), us: words(100), them: words(50), source: { label: "x", url: "https://example.com" } }],
+      bestFor: { us: words(25), them: words(25) },
+    },
+    faq: [{ q: words(10), a: words(40) }],
+  };
+  assert.equal(readingMinutes(post), 2); // 350 words
+});
+
+/** Every piece of body text in a post, with where it came from. */
+function bodyTexts(p: Post): string[] {
+  const out: string[] = [];
+  for (const b of p.blocks) {
+    if (b.kind === "list") out.push(...b.items);
+    else if (b.kind === "table") out.push(b.caption, ...b.head, ...b.rows.flat());
+    else out.push(b.text);
+  }
+  for (const f of p.faq ?? []) out.push(f.q, f.a);
+  return out;
+}
+
+test("T4: every number in a post's text points to one of its sources with [n]", () => {
+  const problems: string[] = [];
+  for (const p of ALL_POSTS) {
+    const count = p.sources?.length ?? 0;
+    for (const text of bodyTexts(p)) {
+      if (!STAT_PATTERN.test(text)) continue;
+      const refs = [...text.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1]));
+      if (!refs.length || refs.some((n) => n < 1 || n > count)) problems.push(`${p.slug}: "${text.slice(0, 70)}…"`);
+    }
+  }
+  assert.deepEqual(problems, []);
+});
+
+test("T5: no post claims LeadOS does things it doesn't (brochures, visit booking, team alerts, billing)", () => {
+  const problems: string[] = [];
+  const claims = (p: Post) => [
+    ...(p.comparison ? [...p.comparison.rows.map((r) => r.us), p.comparison.bestFor.us] : []),
+    ...p.blocks.filter((b) => b.kind === "cta" || ("text" in b && /LeadOS/.test(b.text))).map((b) => ("text" in b ? b.text : "")),
+  ];
+  for (const text of [BLOG_CTA.body, BLOG_CTA.button]) if (OVERCLAIM_PATTERN.test(text)) problems.push(`page CTA: ${text}`);
+  for (const p of ALL_POSTS) for (const t of claims(p)) if (OVERCLAIM_PATTERN.test(t)) problems.push(`${p.slug}: ${t.slice(0, 90)}`);
+  assert.deepEqual(problems, []);
+});
+
+test("T6: sources are https and not repeated within a post", () => {
+  for (const p of ALL_POSTS) {
+    const urls = [...(p.sources ?? []), ...(p.comparison?.rows.map((r) => r.source) ?? [])].map((s) => s.url);
+    for (const u of urls) assert.match(u, /^https:\/\//, `${p.slug}: ${u}`);
+    const listed = (p.sources ?? []).map((s) => s.url);
+    assert.equal(new Set(listed).size, listed.length, `${p.slug} lists a source twice`);
+  }
+});
+
+test("T4b: the statistic pattern catches percentages, rupee amounts, multiples and big counts, not plain words", () => {
+  for (const s of ["80% open", "₹1,600 per lead", "7× more likely", "7x more likely", "53 crore users", "500 million users"]) assert.ok(STAT_PATTERN.test(s), s);
+  for (const s of ["3 BHK", "a 2-hour reminder", "within 5 minutes", "Day 1"]) assert.ok(!STAT_PATTERN.test(s), s);
+});

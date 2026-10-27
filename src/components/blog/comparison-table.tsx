@@ -1,5 +1,5 @@
 import { BRAND } from "@/lib/brand";
-import type { Comparison } from "@/lib/blog";
+import { formatDate, type Comparison } from "@/lib/blog";
 
 export function ComparisonTable({ comparison }: { comparison: Comparison }) {
   return (
@@ -57,7 +57,7 @@ export function ComparisonTable({ comparison }: { comparison: Comparison }) {
 
       <div className="text-xs text-fg-muted leading-relaxed border-t border-border pt-3">
         <p>
-          {`${comparison.competitor} is a trademark of its owner. ${BRAND.name} is not affiliated with ${comparison.competitor}. Information checked on ${comparison.checkedOn} from their public website. Prices and features change; check their site for the latest. Spotted a mistake? Email us and we'll fix it.`}
+          {`${comparison.competitor} is a trademark of its owner. ${BRAND.name} is not affiliated with ${comparison.competitor}. Information checked on ${formatDate(comparison.checkedOn)} from their public website. Prices and features change; check their site for the latest. Spotted a mistake? Email us and we'll fix it.`}
         </p>
       </div>
     </div>

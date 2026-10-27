@@ -109,7 +109,7 @@ test("I15: comparison post shows disclaimer and checked-on date", async () => {
   const res = await get("/blogs/leados-vs-spreadsheets-and-whatsapp");
   const html = await res.text();
   assert.match(html, /is a trademark of its owner/);
-  assert.match(html, /Information checked on.*2026-10-20/);
+  assert.match(html, /Information checked on.*27 Oct 2026/);
 });
 
 test("I16: /sitemap.xml contains published post URLs and /blogs", async () => {
@@ -127,3 +127,11 @@ test("I17: landing page links to /blogs in nav and footer", async () => {
   assert.match(html, /href="\/blogs"/);
 });
 
+
+test("I18: a published post's share image renders as a PNG; a draft's does not exist", async () => {
+  const ok = await get("/blogs/leados-vs-spreadsheets-and-whatsapp/opengraph-image");
+  assert.equal(ok.status, 200);
+  assert.match(ok.headers.get("content-type") ?? "", /image\/png/);
+  const draft = await get("/blogs/leados-vs-hubspot-real-estate-india/opengraph-image");
+  assert.equal(draft.status, 404);
+});

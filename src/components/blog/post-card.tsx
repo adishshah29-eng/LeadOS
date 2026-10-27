@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CATEGORIES, readingMinutes, type Post } from "@/lib/blog";
+import { CATEGORIES, formatDate, readingMinutes, type Post } from "@/lib/blog";
 
 export function PostCard({ post }: { post: Post }) {
   const cat = CATEGORIES[post.category] ?? { name: post.category };
@@ -16,7 +16,7 @@ export function PostCard({ post }: { post: Post }) {
             {cat.name}
           </Link>
           <div className="flex items-center gap-1.5">
-            <time dateTime={post.publishedOn}>{post.publishedOn}</time>
+            <time dateTime={post.publishedOn}>{formatDate(post.publishedOn)}</time>
             <span>·</span>
             <span>{mins} min read</span>
           </div>

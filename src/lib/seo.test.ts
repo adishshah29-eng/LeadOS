@@ -51,3 +51,10 @@ test("F8: robots also blocks the sign-in helper and status pages", () => {
   const disallow = (Array.isArray(rule) ? rule[0] : rule).disallow as string[];
   for (const p of ["/app", "/login/verify", "/setup", "/auth/", "/suspended"]) assert.ok(disallow.includes(p), p);
 });
+
+test("T3: one site address for every page: the setting's origin, or localhost when unset", async () => {
+  const { siteOrigin } = await import("./seo.ts");
+  assert.equal(siteOrigin(undefined), "http://localhost:3000");
+  assert.equal(siteOrigin(""), "http://localhost:3000");
+  assert.equal(siteOrigin(" https://leados.example/blog?x=1 "), "https://leados.example");
+});

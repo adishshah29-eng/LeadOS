@@ -50,6 +50,7 @@ Last updated: 2026-10-24
 
 - [ ] **Fill in `LEGAL`** in `src/lib/brand.ts`: company name, address, contact email, grievance officer, city.
 - [ ] **Lawyer review** of `/privacy`, `/terms` and `/data-deletion`.
+- [ ] **Lawyer review of one blog comparison** (HubSpot or Zoho) before setting `draft: false` on the named-competitor comparisons in `src/content/blog/`.
 - [ ] **Rotate every key pasted into chats so far:** Supabase secret key, Meta app secret, Meta and WhatsApp tokens.
 - [ ] **Run SQL to remove the two orphaned Vault secrets** in the dev database:
   `delete from vault.secrets where id in ('cd176aaa-b468-42a3-824d-f6b34508e21e','7a9bb5d9-73db-4c2b-ab8d-06baa41ae42a');`

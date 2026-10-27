@@ -3,68 +3,56 @@ import type { Post } from "@/lib/blog";
 export const post: Post = {
   slug: "whatsapp-business-api-real-estate-india",
   title: "WhatsApp Business API vs App for Real Estate in India",
-  description: "Compare the free WhatsApp Business app vs Cloud API for property sales teams. Understand multi-agent access, Meta template rules, and chat automation.",
+  description: "The free WhatsApp Business app vs the WhatsApp Business Platform for property sales teams: team access, templates, automation and costs.",
   category: "whatsapp-marketing",
   author: { name: "Adish Shah", role: "Founder" },
   publishedOn: "2026-10-24",
+  updatedOn: "2026-10-27",
   blocks: [
-    {
-      kind: "h2",
-      id: "the-app-limitations",
-      text: "Why the free WhatsApp Business app fails for growing real estate teams",
-    },
+    { kind: "h2", id: "the-app-limitations", text: "Where the free app runs out" },
     {
       kind: "p",
-      text: "Many real estate brokerages start by giving their telecallers and sales agents the standard WhatsApp Business phone app. While functional for a solo broker managing 20 personal contacts, it breaks down quickly as soon as paid ad campaigns begin producing hundreds of inquiries.",
-    },
-    {
-      kind: "p",
-      text: "The free app is tied to physical SIM cards, supports only 4 linked companion devices, lacks automated multi-agent assignment, and provides zero manager visibility into customer conversations or response times.",
+      text: "Many brokerages start with the free WhatsApp Business app on a sales phone. It works well for one person. It gets harder once ads bring in many enquiries a day: the number lives on one phone and a few linked devices, chats stay on whoever's device answered them, and a manager can't easily see who replied to whom.",
     },
     {
       kind: "table",
-      caption: "Key Differences: WhatsApp Business App vs Official Cloud API",
-      head: ["Capability", "WhatsApp Business App (Free)", "WhatsApp Business Cloud API"],
+      caption: "WhatsApp Business app vs WhatsApp Business Platform",
+      head: ["Feature", "WhatsApp Business app", "WhatsApp Business Platform"],
       rows: [
-        ["Maximum Active Agents", "Up to 4 linked companion devices", "Unlimited sales agents on one number"],
-        ["Meta Lead Form Webhook Sync", "Manual copy-paste or third-party hacks", "Native sub-10-second webhook automation"],
-        ["Chatbot & Automated Qualification", "Basic greeting & away messages only", "24/7 AI qualification, scoring & scheduling"],
-        ["Data Ownership & Anti-Leakage", "Chats reside on individual agent phones", "Centralized CRM inbox with agent access boundaries"],
-        ["Bulk Broadcast Capabilities", "Broadcast lists limited to 256 contacts", "Unlimited tiered Meta template broadcasts"],
+        ["How your team uses it", "One phone plus a few linked devices", "Through software connected to the platform, so a whole team can share one number"],
+        ["Starting a conversation", "Message anyone who has your number saved or messages you", "Outside a customer's open 24-hour window, only with Meta-approved message templates"],
+        ["Automation", "Greeting, away messages and quick replies", "Whatever the connected software does, such as replying to new leads automatically"],
+        ["Cost", "Free app", "Meta charges per delivered message, by message type and country"],
       ],
     },
     {
-      kind: "h2",
-      id: "multi-agent-shared-inbox",
-      text: "The power of a single official project number with a shared inbox",
+      kind: "p",
+      text: "The platform's rules on templates and the 24-hour customer service window come from Meta's pricing documentation [1].",
     },
+    { kind: "h2", id: "multi-agent-shared-inbox", text: "One project number, one shared inbox" },
     {
       kind: "p",
-      text: "With the WhatsApp Business Cloud API, developers promote a single verified project phone number across all digital hoardings, brochures, and Meta ads. Inbound chats are received into a unified shared dashboard and automatically distributed to available sales executives round-robin.",
+      text: "With the platform, you can show one verified number on all your ads and brochures, and handle the chats in one shared inbox. When an agent leaves, the conversation history stays with the company instead of on a personal phone.",
+    },
+    { kind: "h2", id: "meta-templates-and-pricing", text: "How Meta charges (as of October 2026)" },
+    {
+      kind: "list",
+      items: [
+        "Since 1 July 2025, Meta charges per delivered message, not per conversation [1].",
+        "Template messages fall into marketing, utility and authentication; replies inside an open customer service window are service messages [1].",
+        "When someone messages you from a click-to-WhatsApp ad, your first reply opens a free entry point window that can stay open for up to 7 days [1].",
+        "From 1 October 2026, service messages are charged after a free allowance of 1,000 a month per business number [1].",
+      ],
     },
     {
-      kind: "p",
-      text: "When an agent resigns or takes leave, past conversation history, floor plan notes, and agreed pricing remain securely preserved in the company database, rather than walking out the door on a personal smartphone.",
+      kind: "callout",
+      tone: "note",
+      text: "Meta changes these rules and rates often. Check the current pricing page before you plan a campaign budget.",
     },
-    {
-      kind: "h2",
-      id: "meta-templates-and-pricing",
-      text: "Understanding Meta conversation categories and billing",
-    },
-    {
-      kind: "p",
-      text: "Under Meta's Cloud API model, conversations are classified into Marketing, Utility, Authentication, and Service categories. When a buyer initiates an inquiry from an ad, developers benefit from a 72-hour free entry point window under Meta Click-to-WhatsApp ad policies.",
-    },
-    {
-      kind: "cta",
-      text: "Upgrade your property sales team to official WhatsApp Business API infrastructure with LeadOS.",
-    },
+    { kind: "cta", text: "LeadOS runs on the WhatsApp Business Platform and greets every Meta lead automatically. Try it free for 14 days." },
   ],
   sources: [
-    {
-      label: "Meta WhatsApp Business Platform Documentation",
-      url: "https://developers.facebook.com/docs/whatsapp",
-    },
+    { label: "Meta for Developers: WhatsApp Business Platform pricing", url: "https://developers.facebook.com/docs/whatsapp/pricing" },
   ],
   related: ["whatsapp-real-estate-lead-follow-up-india", "leados-vs-spreadsheets-and-whatsapp"],
 };

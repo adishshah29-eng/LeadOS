@@ -1,109 +1,80 @@
 import type { Post } from "@/lib/blog";
 
+// Draft until a lawyer has reviewed the first named-competitor comparison
+// (docs/LAUNCH-CHECKLIST.md). Every "them" claim was checked on HubSpot's own pages.
 export const post: Post = {
   slug: "leados-vs-hubspot-real-estate-india",
-  title: "LeadOS vs HubSpot for Indian Real Estate Marketing",
-  description: "HubSpot vs LeadOS for Indian property developers. Compare USD pricing, WhatsApp native automation, Meta ad integration, and ease of use.",
+  title: "LeadOS vs HubSpot for Indian Real Estate Teams",
+  description: "How LeadOS and HubSpot compare for Indian property teams: WhatsApp, Meta lead ads sync, pricing basis, and who each one suits.",
   category: "comparisons",
   author: { name: "Adish Shah", role: "Founder" },
   publishedOn: "2026-10-24",
+  updatedOn: "2026-10-27",
+  draft: true,
   comparison: {
     competitor: "HubSpot",
     website: "https://www.hubspot.com",
-    checkedOn: "2026-10-24",
+    checkedOn: "2026-10-27",
     rows: [
       {
-        feature: "Native WhatsApp conversational qualification",
-        us: "Native 24/7 AI WhatsApp bot handles lead qualification directly from Meta ads",
-        them: "Requires third-party App Marketplace connectors with separate monthly fees per agent",
+        feature: "WhatsApp",
+        us: "Built in: greets each new Meta lead on WhatsApp and asks your qualifying questions",
+        them: "Built-in WhatsApp integration for Marketing Hub and Service Hub Professional and Enterprise",
         source: {
-          label: "HubSpot WhatsApp Integration Overview",
-          url: "https://knowledge.hubspot.com/integrations/use-the-whatsapp-integration",
+          label: "HubSpot: WhatsApp integration announcement",
+          url: "https://www.hubspot.com/company-news/hubspot-announces-general-availability-of-whatsapp-integration",
         },
       },
       {
-        feature: "Pricing structure and currency",
-        us: "Transparent INR billing with clear limits suited for Indian property developers",
-        them: "Billed in USD with steep contact tier pricing penalties as ad leads accumulate",
+        feature: "Meta lead ads sync",
+        us: "Leads arrive through Meta's lead webhook as soon as Meta sends them",
+        them: "Built-in Facebook lead ads sync; HubSpot says new leads can take up to two hours to arrive",
         source: {
-          label: "HubSpot Marketing Hub Pricing Model",
-          url: "https://legal.hubspot.com/pricing-model",
+          label: "HubSpot Knowledge Base: Facebook lead ads FAQ",
+          url: "https://knowledge.hubspot.com/ads/facebook-lead-ads-faq",
         },
       },
       {
-        feature: "Real estate broker data security",
-        us: "Built-in role permissions prevent external channel partners from downloading lead lists",
-        them: "Advanced team partitioning and field-level permissions require Enterprise tiers",
+        feature: "How pricing grows",
+        us: "Monthly plans per workspace, priced in rupees, with set limits on users and accounts",
+        them: "Marketing Hub is billed by seats plus a marketing-contacts tier, which moves up automatically during a contract",
         source: {
-          label: "HubSpot User Permissions & Teams Guide",
-          url: "https://knowledge.hubspot.com/users-permissions/hubspot-user-permissions-guide",
+          label: "HubSpot Knowledge Base: marketing contacts billing",
+          url: "https://knowledge.hubspot.com/account/understand-marketing-contacts-billing",
         },
       },
       {
-        feature: "Primary buyer communication channel",
-        us: "WhatsApp-first with instant automated brochures, floor plans, and site visit booking",
-        them: "Email-first workflows built for US/European B2B buyers with low Indian response rates",
+        feature: "Breadth",
+        us: "Focused on Meta lead ads, WhatsApp qualification and follow-up for real estate",
+        them: "A full marketing, sales and service platform with email, automation and reporting across many industries",
         source: {
-          label: "HubSpot Marketing Automation Workflows",
-          url: "https://www.hubspot.com/products/marketing/marketing-automation",
+          label: "HubSpot: Marketing Hub plans",
+          url: "https://www.hubspot.com/pricing/marketing",
         },
       },
     ],
     bestFor: {
-      us: "Indian builders and real estate firms generating leads on Meta and converting primarily via WhatsApp.",
-      them: "Global B2B companies and cross-border tech enterprises running complex multi-channel email nurture sequences.",
+      us: "Indian real estate teams whose leads come mainly from Meta ads and who follow up mostly on WhatsApp.",
+      them: "Businesses that want one platform for email marketing, sales and service, and have the budget and time to set it up.",
     },
   },
   blocks: [
-    {
-      kind: "h2",
-      id: "the-inbound-disconnect",
-      text: "The inbound marketing disconnect in Indian real estate",
-    },
+    { kind: "h2", id: "two-different-tools", text: "Two different kinds of tool" },
     {
       kind: "p",
-      text: "HubSpot is widely respected for B2B inbound software sales. However, Indian real estate operates on completely different dynamics: high-velocity Meta campaigns where buyers browse homes on their smartphones and ignore promotional emails.",
+      text: "HubSpot is a broad customer platform used by businesses of every kind. LeadOS does one job: it takes leads from Meta lead ads, greets them on WhatsApp, asks your qualifying questions, and gives your team a clear list of who to call. The right choice depends on how much of HubSpot's breadth you will actually use.",
     },
+    { kind: "h2", id: "whatsapp-and-meta", text: "WhatsApp and Meta lead ads" },
     {
       kind: "p",
-      text: "When an Indian homebuyer fills an inquiry form on Facebook or Instagram, sending an email sequence produces negligible response. In contrast, an instant WhatsApp message delivers 80% plus open rates and immediate conversations.",
+      text: "Both connect to WhatsApp and to Facebook lead ads. The differences are in plan level and timing: HubSpot's WhatsApp integration is on its Professional and Enterprise plans, and its lead ads sync can take up to two hours for new leads. LeadOS receives leads through Meta's webhook as they are submitted and starts the WhatsApp conversation straight away.",
     },
-    {
-      kind: "h2",
-      id: "the-contact-tax",
-      text: "The contact tier tax on property campaigns",
-    },
+    { kind: "h2", id: "pricing-basis", text: "How the price grows" },
     {
       kind: "p",
-      text: "Active real estate marketing campaigns generate thousands of top-of-funnel inquiries per month. Under HubSpot's marketing contact pricing, retaining old inquiries quickly escalates monthly software costs into thousands of dollars.",
+      text: "HubSpot's Marketing Hub counts marketing contacts as part of its price, so a large database of past enquiries can raise the bill. LeadOS plans are per workspace with fixed limits. Check both pricing pages with your own numbers before deciding.",
     },
-    {
-      kind: "p",
-      text: "LeadOS charges predictable Indian Rupee subscription plans designed specifically for developers and marketing agencies, without penalizing you for maintaining a long-term buyer database.",
-    },
-    {
-      kind: "h2",
-      id: "sales-team-adoption",
-      text: "Onboarding sales agents without extensive training",
-    },
-    {
-      kind: "p",
-      text: "Property sales agents in India are on the road visiting model flats, conducting site visits, and chatting with clients. They rarely log into heavyweight desktop CRM systems. LeadOS gives agents a streamlined mobile-friendly inbox with quick WhatsApp follow-up triggers.",
-    },
-    {
-      kind: "cta",
-      text: "Switch to a modern WhatsApp-native sales platform tailored for Indian real estate. Start your free trial today.",
-    },
-  ],
-  sources: [
-    {
-      label: "HubSpot Marketing Pricing and Contact Tiers",
-      url: "https://www.hubspot.com/pricing/marketing",
-    },
-    {
-      label: "HubSpot WhatsApp Communication Hub",
-      url: "https://knowledge.hubspot.com/integrations/use-the-whatsapp-integration",
-    },
+    { kind: "cta", text: "See whether LeadOS fits your team: try it free for 14 days." },
   ],
   related: ["leados-vs-zoho-crm-real-estate", "speed-to-lead-real-estate"],
 };

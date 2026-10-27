@@ -1,109 +1,71 @@
 import type { Post } from "@/lib/blog";
 
+// Draft until a lawyer has reviewed the first named-competitor comparison
+// (docs/LAUNCH-CHECKLIST.md). Every "them" claim was checked on Zoho's own pages.
 export const post: Post = {
   slug: "leados-vs-zoho-crm-real-estate",
-  title: "LeadOS vs Zoho CRM for Real Estate Teams",
-  description: "Compare LeadOS and Zoho CRM for Indian real estate developers and brokers. Analyze WhatsApp bots, speed to lead, pricing, and setup time.",
+  title: "LeadOS vs Zoho CRM for Indian Real Estate Teams",
+  description: "How LeadOS and Zoho CRM compare for Indian property teams: WhatsApp, Meta lead ads, access control, and who each one suits.",
   category: "comparisons",
   author: { name: "Adish Shah", role: "Founder" },
-  publishedOn: "2026-10-24",
+  publishedOn: "2026-10-23",
+  updatedOn: "2026-10-27",
+  draft: true,
   comparison: {
     competitor: "Zoho CRM",
-    website: "https://www.zoho.com/crm",
-    checkedOn: "2026-10-24",
+    website: "https://www.zoho.com/crm/",
+    checkedOn: "2026-10-27",
     rows: [
       {
-        feature: "Built-in WhatsApp qualification bot",
-        us: "Native 24/7 AI qualification on official WhatsApp Business Cloud API in seconds",
-        them: "Requires third-party marketplace plugins or separate Zoho SalesIQ/Wati subscriptions",
+        feature: "WhatsApp",
+        us: "Built in: greets each new Meta lead on WhatsApp and asks your qualifying questions",
+        them: "WhatsApp Business integration in the trial and all paid editions, set up under Business Messaging",
         source: {
-          label: "Zoho CRM WhatsApp Integration Guide",
-          url: "https://www.zoho.com/crm/help/channels/whatsapp.html",
+          label: "Zoho CRM Help: WhatsApp for Business integration",
+          url: "https://help.zoho.com/portal/en/kb/crm/connect-with-customers/business-messaging/articles/business-messaging-using-whatsapp-for-business-integration-with-zoho-crm",
         },
       },
       {
-        feature: "Real estate workflow readiness",
-        us: "Out-of-the-box capture of budget, BHK type, possession date, and site visit booking",
-        them: "Generic CRM requiring custom fields, layout rules, and Blueprint workflow consulting",
+        feature: "Meta lead ads",
+        us: "Connects to Meta directly; leads arrive through Meta's lead webhook",
+        them: "Through Zoho Social's Lead Ads feature (Premium, Agency and Agency Plus plans), which pushes leads into Zoho CRM",
         source: {
-          label: "Zoho CRM Custom Modules & Fields",
-          url: "https://www.zoho.com/crm/developer/docs/api/v6/custom-modules.html",
+          label: "Zoho Social Help: set up Facebook Lead Generation",
+          url: "https://help.zoho.com/portal/en/kb/social/faqs/integrations/articles/how-do-i-set-up-facebook-lead-generation-on-zoho-social",
         },
       },
       {
-        feature: "Meta lead ads sync & setup speed",
-        us: "Direct Meta webhook setup in 15 minutes without Zapier or third-party webhooks",
-        them: "Multi-step setup through Zoho Social or webhooks, often needing developer help",
+        feature: "Who sees which leads",
+        us: "On every plan: agents see only leads assigned to them, managers their projects; only owners and admins export",
+        them: "Territory management (by product line, geography or vertical) on the Enterprise and Ultimate editions",
         source: {
-          label: "Zoho CRM Meta Lead Ads Integration",
-          url: "https://www.zoho.com/crm/help/social/facebook-lead-ads.html",
-        },
-      },
-      {
-        feature: "Broker & channel partner data isolation",
-        us: "Built-in agent boundaries prevent unauthorized lead export and contact theft",
-        them: "Territory management and data security rules require higher tier Enterprise plans",
-        source: {
-          label: "Zoho CRM Data Sharing & Security Rules",
-          url: "https://www.zoho.com/crm/help/security/data-sharing-rules.html",
+          label: "Zoho CRM pricing and editions",
+          url: "https://www.zoho.com/crm/zohocrm-pricing.html",
         },
       },
     ],
     bestFor: {
-      us: "Indian real estate sales teams, project marketing agencies, and developers running Meta campaigns seeking immediate speed-to-lead.",
-      them: "Large conglomerates needing cross-departmental ERP integrations, custom Delphi-style scripting, and multi-industry support.",
+      us: "Indian real estate teams whose leads come mainly from Meta ads and who want WhatsApp qualification working on day one.",
+      them: "Businesses that want a highly customisable CRM across many departments, and possibly the wider Zoho suite.",
     },
   },
   blocks: [
-    {
-      kind: "h2",
-      id: "the-real-estate-crm-challenge",
-      text: "The real estate CRM challenge in India",
-    },
+    { kind: "h2", id: "general-vs-focused", text: "A general CRM or a focused lead tool" },
     {
       kind: "p",
-      text: "Most CRM systems were built for B2B software companies or long enterprise procurement cycles. In Indian real estate, buyers browse projects at night on Instagram or Facebook and expect an immediate brochure or pricing breakdown on WhatsApp.",
+      text: "Zoho CRM is a general-purpose CRM that you shape to your business with custom fields, layouts and workflows. LeadOS comes set up for real estate: its WhatsApp questions cover configuration, budget, purpose and timeline out of the box, and you can edit them.",
     },
+    { kind: "h2", id: "whatsapp-and-meta", text: "WhatsApp and Meta lead ads" },
     {
       kind: "p",
-      text: "When a developer relies on generic platforms like Zoho CRM, leads sit in an unassigned queue until a telecaller manually dials the number. By that time, the prospect has often engaged with another developer.",
+      text: "Both work with WhatsApp. Zoho connects its WhatsApp integration in every paid edition, and brings Meta lead ads in through Zoho Social. LeadOS connects to Meta directly and starts a WhatsApp conversation with each new lead as it arrives.",
     },
-    {
-      kind: "h2",
-      id: "whatsapp-native-vs-plugin",
-      text: "Native WhatsApp automation vs marketplace add-ons",
-    },
+    { kind: "h2", id: "access", text: "Keeping leads with the right people" },
     {
       kind: "p",
-      text: "Zoho CRM treats WhatsApp as an external channel. To send automated WhatsApp messages, real estate companies must connect external service providers, juggle separate bills, and write custom workflow rules.",
+      text: "Real estate teams often work with channel partners and junior agents. In LeadOS, agents only see leads assigned to them and only owners and admins can export. In Zoho CRM, territory-based access is part of the Enterprise and Ultimate editions.",
     },
-    {
-      kind: "p",
-      text: "LeadOS was built from the ground up around WhatsApp. The moment a Meta lead form is submitted, the LeadOS qualifying engine triggers an interactive WhatsApp conversation asking qualifying questions: budget range, desired BHK configuration, and availability for a site visit.",
-    },
-    {
-      kind: "h2",
-      id: "time-to-launch",
-      text: "15 minutes vs 4 weeks of implementation",
-    },
-    {
-      kind: "p",
-      text: "Setting up Zoho CRM for a new residential tower launch typically requires a certified consultant to configure custom modules, validate fields, and set up assignment rules. LeadOS lets sales directors launch campaigns in 15 minutes without touching code.",
-    },
-    {
-      kind: "cta",
-      text: "See how LeadOS cuts lead response time from hours to under 30 seconds. Start your free trial today.",
-    },
+    { kind: "cta", text: "See whether LeadOS fits your team: try it free for 14 days." },
   ],
-  sources: [
-    {
-      label: "Zoho CRM Official Platform Documentation",
-      url: "https://www.zoho.com/crm/help/",
-    },
-    {
-      label: "Harvard Business Review Speed to Lead Benchmark",
-      url: "https://hbr.org/2011/03/the-short-life-of-online-sales-leads",
-    },
-  ],
-  related: ["leados-vs-spreadsheets-and-whatsapp", "speed-to-lead-real-estate"],
+  related: ["leados-vs-hubspot-real-estate-india", "speed-to-lead-real-estate"],
 };

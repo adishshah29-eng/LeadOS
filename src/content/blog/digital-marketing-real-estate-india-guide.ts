@@ -3,73 +3,46 @@ import type { Post } from "@/lib/blog";
 export const post: Post = {
   slug: "digital-marketing-real-estate-india-guide",
   title: "Digital Marketing for Real Estate in India: Complete Guide",
-  description: "Master real estate digital marketing in India. Learn Meta ads, Google Search, WhatsApp automation, RERA compliance, and lead conversion.",
+  description: "A practical guide to real estate digital marketing in India: Meta ads, Google Search, WhatsApp follow-up, RERA rules and lead handling.",
   category: "digital-marketing-india",
   author: { name: "Adish Shah", role: "Founder" },
   publishedOn: "2026-10-24",
+  updatedOn: "2026-10-27",
   blocks: [
+    { kind: "h2", id: "the-shift-to-digital", text: "Why digital channels matter for property sales" },
     {
-      kind: "h2",
-      id: "the-shift-to-digital",
-      text: "The digital transformation of Indian property buying",
+      kind: "p",
+      text: "Print ads, newspaper inserts and hoardings still build awareness, but they are hard to measure and hard to follow up. Digital ads tell you exactly who enquired, from which ad, and at what cost, and they let you reply to that person within minutes.",
+    },
+    { kind: "h2", id: "meta-ads-vs-google-search", text: "Meta lead ads and Google Search work together" },
+    {
+      kind: "p",
+      text: "Google Search reaches people who are already searching for something specific, such as a 3 BHK in a particular locality. These searches show clear intent, but clicks in busy markets can be expensive.",
     },
     {
       kind: "p",
-      text: "Traditional print advertisements, newspaper inserts, and physical hoardings are no longer sufficient to drive steady footfall to real estate sales galleries. Today, over 80% of homebuyers in tier-1 and tier-2 Indian cities discover residential and commercial projects through digital channels before ever contacting a broker.",
+      text: "Meta lead ads reach people who were not searching yet, with video walkthroughs, photos and amenities, aimed at chosen areas and audiences. They bring more leads at a lower cost, but those leads need a fast reply, because people forget which ad they filled in.",
+    },
+    { kind: "h2", id: "whatsapp-the-conversion-bridge", text: "WhatsApp is where the conversation happens" },
+    {
+      kind: "p",
+      text: "In 2021 the Government of India cited 53 crore WhatsApp users in the country [1]. For many homebuyers it is the app they check most, which makes it the natural place for the first reply, sharing project details and confirming a site visit.",
     },
     {
       kind: "p",
-      text: "With high mobile data penetration and widespread use of Instagram and WhatsApp across demographics, developers who master high-intent digital funnels achieve significantly lower customer acquisition costs than those relying on legacy media.",
+      text: "To message a new lead first on WhatsApp at scale, businesses use the WhatsApp Business Platform with message templates approved by Meta [2]. Keep the first message short, mention the project they asked about, and ask one easy question.",
     },
-    {
-      kind: "h2",
-      id: "meta-ads-vs-google-search",
-      text: "Balancing Meta lead ads with high-intent Google search",
-    },
+    { kind: "h2", id: "rera-and-compliance", text: "Stay RERA compliant in every ad" },
     {
       kind: "p",
-      text: "A balanced digital marketing strategy leverages both push and pull advertising. Google Search captures active buyers searching for specific micro-markets such as 3 BHK in Whitefield or luxury flats in Worli. These leads have high intent but carry a higher cost per click.",
+      text: "Section 11(2) of the RERA Act requires advertisements for a registered project to show the project's registration number and the website address of the state RERA authority [3]. State authorities have penalised promoters for leaving these out, so check every creative, landing page and brochure.",
     },
-    {
-      kind: "p",
-      text: "Meta lead ads, by contrast, excel at generating volume by presenting visual video walkthroughs, floor plans, and lifestyle amenities directly to qualified demographics in targeted pincodes. However, Meta leads require rapid follow-up because browsing users can easily forget which ad they submitted.",
-    },
-    {
-      kind: "h2",
-      id: "whatsapp-the-conversion-bridge",
-      text: "Why WhatsApp is the primary conversion engine in India",
-    },
-    {
-      kind: "p",
-      text: "In India, email is rarely checked by retail homebuyers during personal buying decisions, and unsolicited phone calls from unknown landline numbers suffer from high rejection rates. WhatsApp has become the definitive bridge between ad click and site visit.",
-    },
-    {
-      kind: "p",
-      text: "Developers who deploy automated WhatsApp qualification within seconds of an ad form submission see conversation rates jump past 60%. Prospects willingly share budget parameters, intended possession dates, and confirm appointments when approached conversationally on their primary messaging app.",
-    },
-    {
-      kind: "h2",
-      id: "rera-and-compliance",
-      text: "Maintaining RERA compliance in digital campaigns",
-    },
-    {
-      kind: "p",
-      text: "Under RERA mandates, every digital creative, landing page, and automated brochure must prominently display the official project RERA registration number and the state portal website. Non-compliance can trigger hefty regulatory fines and advertisement takedowns.",
-    },
-    {
-      kind: "cta",
-      text: "Automate your real estate digital marketing pipeline from ad click to booked site visit. Try LeadOS free for 14 days.",
-    },
+    { kind: "cta", text: "LeadOS connects your Meta lead ads to WhatsApp follow-up in one place. Try it free for 14 days." },
   ],
   sources: [
-    {
-      label: "Knight Frank India Real Estate Sentiment Index",
-      url: "https://www.knightfrank.co.in/research",
-    },
-    {
-      label: "MahaRERA Official Registration Guidelines",
-      url: "https://maharera.mahaonline.gov.in/",
-    },
+    { label: "Bar and Bench: IT Rules 2021 and platform user numbers", url: "https://barandbench.com/news/law-policy/platforms-with-more-than-50-lakh-users-to-be-significant-social-media-intermediaries-it-rules" },
+    { label: "Meta for Developers: WhatsApp Business Platform pricing", url: "https://developers.facebook.com/docs/whatsapp/pricing" },
+    { label: "Andhra Pradesh RERA: advertisement guidelines under the RERA Act", url: "https://rera.ap.gov.in/RERA/Views/AdvertisementGuidelines.aspx" },
   ],
-  related: ["speed-to-lead-real-estate", "leados-vs-zoho-crm-real-estate"],
+  related: ["speed-to-lead-real-estate", "meta-lead-ads-real-estate-setup"],
 };
