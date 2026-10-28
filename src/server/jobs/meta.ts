@@ -73,8 +73,9 @@ export const adsSync = inngest.createFunction(
   {
     id: "meta-ads-sync",
     triggers: [{ event: EV.adsSync }],
-    // One sync per ad account at a time; at most 8 across the platform.
-    concurrency: [{ key: "event.data.adAccountId", limit: 1 }, { limit: 8 }],
+    // One sync per ad account at a time; at most 5 across the platform
+    // (Inngest's free-plan cap: anything higher and the whole app fails to register).
+    concurrency: [{ key: "event.data.adAccountId", limit: 1 }, { limit: 5 }],
     // App-wide token bucket: all tenants share one Meta app's quota.
     throttle: { limit: 120, period: "1m" },
     retries: 4,
